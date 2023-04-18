@@ -1,6 +1,7 @@
 package cn.edu.sustech.cs209.chatting.client;
 
 import cn.edu.sustech.cs209.chatting.common.Message;
+import cn.edu.sustech.cs209.chatting.common.Users;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -12,18 +13,24 @@ import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 
+
+import java.io.IOException;
+import java.net.Socket;
 import java.net.URL;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.ResourceBundle;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
+
 public class Controller implements Initializable {
+
 
     @FXML
     ListView<Message> chatContentList;
 
     String username;
+
+    @FXML
+    private Label currentUsername;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -33,13 +40,32 @@ public class Controller implements Initializable {
         dialog.setHeaderText(null);
         dialog.setContentText("Username:");
 
+
+        Users.user_socket_map.put("ab",new Socket());
+        System.out.println(Users.user_socket_map.containsKey("ab"));
+
         Optional<String> input = dialog.showAndWait();
         if (input.isPresent() && !input.get().isEmpty()) {
             /*
                TODO: Check if there is a user with the same name among the currently logged-in users,
                      if so, ask the user to change the username
              */
-            username = input.get();
+            if(Users.user_socket_map.containsKey(input.get())){
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("repetitive username");
+                alert.setHeaderText("repetitive username");
+                alert.setContentText("You entered a repetitive username, please change it later.");
+                alert.showAndWait();
+                Platform.exit();
+            }else {
+                username = input.get();
+                setCurrentUsername(username);
+            try {
+                Client client = new Client(username);
+                Users.user_socket_map.put(client.getUsername(),client.getSocket());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }}
         } else {
             System.out.println("Invalid username " + input + ", exiting");
             Platform.exit();
@@ -87,6 +113,7 @@ public class Controller implements Initializable {
      */
     @FXML
     public void createGroupChat() {
+
     }
 
     /**
@@ -139,5 +166,9 @@ public class Controller implements Initializable {
                 }
             };
         }
+    }
+
+    public void setCurrentUsername(String name){
+        currentUsername.setText("Current User: " + name);
     }
 }
