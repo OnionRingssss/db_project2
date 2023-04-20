@@ -12,12 +12,15 @@ public class Message implements Serializable {
 
     private String data;
 
-    public Message(Long timestamp, String sentBy, String sendTo, String data) {
-        super();
+    private MsgType type;
+
+    public Message(Long timestamp, String sentBy, String sendTo, String data, MsgType type) {
+
         this.timestamp = timestamp;
         this.sentBy = sentBy;
         this.sendTo = sendTo;
         this.data = data;
+        this.type = type;
     }
 
     public Long getTimestamp() {
@@ -36,11 +39,9 @@ public class Message implements Serializable {
         return data;
     }
 
-//    public String MsgToString(){
-//        String a = timestamp.toString();
-//        StringBuilder answer = new StringBuilder();
-//        answer.append(a+"~");answer.append(sentBy+"~");
-//        answer.append(sendTo+" ~");answer.append(data);
-//        return answer.toString();
-//    }
+    public MsgType getType(){
+        return type;
+    }
+
+
 }

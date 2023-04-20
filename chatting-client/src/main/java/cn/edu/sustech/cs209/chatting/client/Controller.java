@@ -1,28 +1,46 @@
 package cn.edu.sustech.cs209.chatting.client;
 
 import cn.edu.sustech.cs209.chatting.common.Message;
+import cn.edu.sustech.cs209.chatting.common.MsgType;
+import cn.edu.sustech.cs209.chatting.common.OOS_OIS;
 import cn.edu.sustech.cs209.chatting.common.Users;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 
 
 import java.io.IOException;
+
 import java.net.Socket;
 import java.net.URL;
+import java.sql.Time;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 
 public class Controller implements Initializable {
 
+    private OOS_OIS.MyObjectOutputStream moos;
+
+    public Set<String> userSet = new HashSet<>();
+    ObservableList<String> stringObservableList;
+    ObservableList<Message> mesObservableList = FXCollections.observableArrayList();
+
+    @FXML
+    private TextArea inputArea;
 
     @FXML
     ListView<Message> chatContentList;
@@ -31,6 +49,16 @@ public class Controller implements Initializable {
 
     @FXML
     private Label currentUsername;
+    @FXML
+    private Label talkWith;
+    private String talkTo = null;
+
+    @FXML
+    public ListView<String> chatList;
+
+    @FXML
+    public Label currentOnlineCnt;
+
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -41,52 +69,74 @@ public class Controller implements Initializable {
         dialog.setContentText("Username:");
 
 
-        Users.user_socket_map.put("ab",new Socket());
-        System.out.println(Users.user_socket_map.containsKey("ab"));
-
         Optional<String> input = dialog.showAndWait();
         if (input.isPresent() && !input.get().isEmpty()) {
             /*
                TODO: Check if there is a user with the same name among the currently logged-in users,
                      if so, ask the user to change the username
              */
-            if(Users.user_socket_map.containsKey(input.get())){
+            System.out.println(Users.user_socket_map);
+            if (Users.user_socket_map.containsKey(input.get())) {
                 Alert alert = new Alert(Alert.AlertType.WARNING);
                 alert.setTitle("repetitive username");
                 alert.setHeaderText("repetitive username");
                 alert.setContentText("You entered a repetitive username, please change it later.");
                 alert.showAndWait();
                 Platform.exit();
-            }else {
+            } else {
                 username = input.get();
                 setCurrentUsername(username);
-            try {
-                Client client = new Client(username);
-                Users.user_socket_map.put(client.getUsername(),client.getSocket());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }}
+                try {
+                    //创建一个client，以及其中的读写线程
+                    Client client = new Client(username, this);
+
+                    //发送给相应的Server一个Message，说明自己连接上了，同时将自己放到users中
+                    moos = client.getOs();
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         } else {
             System.out.println("Invalid username " + input + ", exiting");
             Platform.exit();
         }
+        String displayTalkTo = "talking to: " + talkTo;
+        talkWith.setText(displayTalkTo);
+
+        chatList.setOnMouseClicked(mouseEvent -> {
+            if (mouseEvent.getClickCount() == 2) {
+                talkTo = chatList.getSelectionModel().getSelectedItem();
+                privateChatHelper();
+                //将信息传递进user-user-msg中
+
+            }
+        });
 
         chatContentList.setCellFactory(new MessageCellFactory());
+        chatContentList.setItems(mesObservableList);
     }
 
     @FXML
     public void createPrivateChat() {
         AtomicReference<String> user = new AtomicReference<>();
 
+        //该stage为弹出供我们选择私聊对象的stage
         Stage stage = new Stage();
         ComboBox<String> userSel = new ComboBox<>();
 
         // FIXME: get the user list from server, the current user's name should be filtered out
-        userSel.getItems().addAll("Item 1", "Item 2", "Item 3");
+        //将userset写入usersel
+        for (String s : userSet) {
+            if (!s.equals(username)) userSel.getItems().add(s);
+        }
 
         Button okBtn = new Button("OK");
         okBtn.setOnAction(e -> {
             user.set(userSel.getSelectionModel().getSelectedItem());
+            //将选中的聊天对象设置为 talkto
+            talkTo = userSel.getSelectionModel().getSelectedItem();
+            privateChatHelper();
             stage.close();
         });
 
@@ -97,8 +147,13 @@ public class Controller implements Initializable {
         stage.setScene(new Scene(box));
         stage.showAndWait();
 
-        // TODO: if the current user already chatted with the selected user, just open the chat with that user
-        // TODO: otherwise, create a new chat item in the left panel, the title should be the selected user's name
+//        // TODO: if the current user already chatted with the selected user, just open the chat with that user
+//        if (user.get().equals(talkTo)) {
+//
+//        }
+//        // TODO: otherwise, create a new chat item in the left panel, the title should be the selected user's name
+//        else {
+//        }
     }
 
     /**
@@ -113,7 +168,33 @@ public class Controller implements Initializable {
      */
     @FXML
     public void createGroupChat() {
+        Stage GroupChatChooserStage = new Stage();
+        List<CheckBox>chosenUser = new ArrayList<>();
+        Label label = new Label("choose some friend and begin your group chat! ");
+        VBox under_vbox = new VBox();
+        VBox upper_vbox = new VBox();
+        HBox hBox = new HBox();
+        Label label1 = new Label("set a name for your group: ");
+        TextField textField = new TextField();
+        hBox.getChildren().addAll(label1,textField);
+        //可选择的用户不包含当前用户，但是在创建完成群后要将当前用户加进去
+        for (String s : userSet) {
+            if (!s.equals(username)) {
+                chosenUser.add(new CheckBox(s));
+            }
+        }
+        Button okBtn = new Button("OK");
+        okBtn.setOnAction(e->{
+            //发送信息给server，让server知道客户端创建群聊
 
+            GroupChatChooserStage.close();
+        });
+        upper_vbox.getChildren().addAll(chosenUser);
+        under_vbox.getChildren().addAll(hBox,label,upper_vbox,okBtn);
+        under_vbox.setAlignment(Pos.CENTER);
+        under_vbox.setPadding(new Insets(20, 20, 20, 20));
+        GroupChatChooserStage.setScene(new Scene(under_vbox));
+        GroupChatChooserStage.showAndWait();
     }
 
     /**
@@ -123,8 +204,22 @@ public class Controller implements Initializable {
      * After sending the message, you should clear the text input field.
      */
     @FXML
-    public void doSendMessage() {
+    public void doSendMessage() throws IOException {
         // TODO
+        //发送一个信息给server
+        String inputFromKeyBoard = inputArea.getText();
+        //清空原本的内容
+        inputArea.setText("");
+        //将message传给server
+        Message message = new Message(System.currentTimeMillis(), username, talkTo, inputFromKeyBoard, MsgType.TALK);
+        moos.writeObject(message);
+        //加入自己的message显示中
+        Platform.runLater(() -> {
+            mesObservableList.add(message);
+            System.out.println(mesObservableList);
+            chatContentList.setItems(mesObservableList);
+        });
+
     }
 
     /**
@@ -140,6 +235,9 @@ public class Controller implements Initializable {
                 public void updateItem(Message msg, boolean empty) {
                     super.updateItem(msg, empty);
                     if (empty || Objects.isNull(msg)) {
+                        //阻止切换聊天对象时出现bug
+                        setText(null);
+                        setGraphic(null);
                         return;
                     }
 
@@ -168,7 +266,61 @@ public class Controller implements Initializable {
         }
     }
 
-    public void setCurrentUsername(String name){
+    //左下角当前用户显示
+    public void setCurrentUsername(String name) {
         currentUsername.setText("Current User: " + name);
     }
+
+    //在线人数显示
+    public void setCuNum(String a) {
+        Platform.runLater(() -> currentOnlineCnt.setText("Online:" + a));
+    }
+
+    //设置好左侧聊天对象栏
+    public void setLeftLV(String[] string) {
+        Platform.runLater(() -> {
+            ArrayList<String> str = new ArrayList<>();
+            for (String s : string) {
+                if (!s.equals(username)) {
+                    str.add(s);
+                }
+            }
+            String[] sss = new String[str.size()];
+            for (int i = 0; i < str.size(); i++) {
+                sss[i] = str.get(i);
+            }
+            stringObservableList = FXCollections.observableArrayList(Arrays.asList(sss));
+            chatList.setItems(stringObservableList);
+        });
+    }
+
+    //用于更新聊天内容
+    public void setMsgLV(Message message) {
+        Platform.runLater(() -> {
+            mesObservableList.add(message);
+            System.out.println(mesObservableList);
+            chatContentList.setItems(mesObservableList);
+        });
+    }
+
+    //用于在切换聊天对象时重新刷新聊天
+    public void reWriteMsgLV() {
+        Platform.runLater(() -> {
+            mesObservableList = FXCollections.observableArrayList();
+            chatContentList.setItems(mesObservableList);
+        });
+    }
+
+    public void privateChatHelper() {
+        //发送给server信息，告诉server该客户端talkTo的对象
+        try {
+            moos.writeObject(new Message(System.currentTimeMillis(), username, talkTo, "talkingTo", MsgType.TALKINGTO));
+            System.out.println("talking to success");
+            reWriteMsgLV();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+        talkWith.setText("talking to: " + talkTo);
+    }
+
 }

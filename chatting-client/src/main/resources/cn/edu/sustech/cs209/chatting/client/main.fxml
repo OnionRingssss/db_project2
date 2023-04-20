@@ -22,6 +22,12 @@
             <MenuItem mnemonicParsing="false" onAction="#createGroupChat" text="New Group Chat" />
         </Menu>
     </MenuBar>
+   <HBox prefHeight="33.0" prefWidth="900.0">
+      <children>
+         <Pane prefHeight="33.0" prefWidth="715.0" />
+         <Label fx:id="talkWith" prefHeight="33.0" prefWidth="195.0" text="Label" />
+      </children>
+   </HBox>
     <SplitPane dividerPositions="0.25" focusTraversable="true" VBox.vgrow="ALWAYS">
         <ListView fx:id="chatList" prefHeight="466.0" prefWidth="221.0" />
         <SplitPane dividerPositions="0.85" orientation="VERTICAL" prefHeight="200.0" prefWidth="160.0">
