@@ -4,6 +4,15 @@ import cn.edu.sustech.cs209.chatting.common.Message;
 import cn.edu.sustech.cs209.chatting.common.MsgType;
 import cn.edu.sustech.cs209.chatting.common.OOS_OIS;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.event.EventHandler;
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 import java.io.*;
 import java.net.Socket;
@@ -24,7 +33,7 @@ public class Client {
         ois = new OOS_OIS.MyObjectInputStream(this.socket.getInputStream());
         os = new OOS_OIS.MyObjectOutputStream(this.socket.getOutputStream());
         Thread cw = new Thread(new ClientWriter(socket, username, os, this.controller));
-        Thread cr = new Thread(new ClientReader(socket, ois, this.controller));
+        Thread cr = new Thread(new ClientReader(socket, ois, os,this.controller));
         cw.start();
         cr.start();
     }
@@ -49,16 +58,19 @@ public class Client {
 class ClientReader implements Runnable {
     private Socket socket;
     OOS_OIS.MyObjectInputStream ois;
+    OOS_OIS.MyObjectOutputStream os;
     Controller controller;
 
 
-    public ClientReader(Socket socket, OOS_OIS.MyObjectInputStream ois, Controller controller) {
+    public ClientReader(Socket socket, OOS_OIS.MyObjectInputStream ois, OOS_OIS.MyObjectOutputStream os, Controller controller) {
         this.socket = socket;
         this.ois = ois;
+        this.os = os;
         this.controller = controller;
     }
 
     @Override
+    @FXML
     public void run() {
         try {
             System.out.println("线程r开始了");
@@ -70,7 +82,7 @@ class ClientReader implements Runnable {
                     case COMMAND:
                         break;
                     case TALK:
-                        System.out.println(message.getData());
+                        System.out.println("从server回来的聊天记录message："+message.getData());
                         controller.setMsgLV(message);
                         break;
                     case REQ:
@@ -85,6 +97,60 @@ class ClientReader implements Runnable {
                         //设置在线人数
                         controller.setCuNum(a);
                         break;
+//                    case GROUP_CREATE://如果收到了来自server的群聊要求
+//                        //创建群聊界面
+//                        FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("groupChatFX.fxml"));
+//                        Platform.runLater(() -> {
+//                            System.out.println("pola dsaf");
+//                            Stage groupStage = new Stage();
+////                            //给stage设置一个关闭监听
+////                            groupStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+////                                @Override
+////                                public void handle(WindowEvent windowEvent) {
+////                                    //发送一个关闭的消息给server
+////
+////                                }
+////                            });
+//                            try {
+//                                groupStage.setScene(new Scene(fxmlLoader.load()));
+//                            } catch (IOException e) {
+//                                e.printStackTrace();
+//                            }
+//                                GroupChatFX groupChatFX = fxmlLoader.getController();
+//
+//
+//                            groupStage.setTitle(message.getData()+":"+message.getSendTo());
+//                            groupStage.show();
+//
+//
+//                        });
+//                        break;
+                    case G_TALK:
+                        System.out.println("con.client_gcontroler map:"+controller.client_gcontroller_map);
+                        this.controller.client_gcontroller_map.get(message.getSendTo()).GsetMsgLV(message);
+                        break;
+                    case G_CREATEGCONTROLLER:
+                        this.controller.createNewGcontroller(message.getData()+":"+message.getSendTo(),message.getData());
+                        System.out.println("client接受创建信息");
+
+//                        //链接fxml文件
+//                        Stage groupStage = new Stage();
+//                        FXMLLoader loader = new FXMLLoader(getClass().getResource("groupChatFX.fxml"));
+//                        Platform.runLater(()->{
+//                            try {
+//                                groupStage.setScene(new Scene(loader.load()));
+//                                groupStage.setTitle(message.getData());
+//                                groupStage.show();
+//                            } catch (IOException ex) {
+//                                ex.printStackTrace();
+//                            }
+//                        });
+
+                        break;
+//                    case CLEAR://清空
+//                        controller.mesObservableList = FXCollections.observableArrayList();
+//                        controller.chatContentList.setItems(controller.mesObservableList);
+//                        break;
                     default:
                         break;
                 }
@@ -121,26 +187,27 @@ class ClientWriter implements Runnable {
                     os.writeObject(message);
                     socket.getOutputStream().flush();
                     controlNum++;
-                } else {
-                    Scanner scanner = new Scanner(System.in);
-                    String data = scanner.nextLine();
-                    if (data.equals("exit")) {
-                        Message message = new Message(2320L, username, "Server", data, MsgType.TALK);
-                        os.writeObject(message);
-                        socket.getOutputStream().flush();
-                        Platform.exit();
-                    }
-                    Message message;
-                    if (username.equals("a")) {
-                        message = new Message(424234L, username, "b", data, MsgType.TALK);
-                    } else {
-                        message = new Message(424234L, username, "a", data, MsgType.TALK);
-                    }
-                    os.writeObject(message);
-                    System.out.println("第二步完成");
-                    socket.getOutputStream().flush();
-
                 }
+//                } else {
+//                    Scanner scanner = new Scanner(System.in);
+//                    String data = scanner.nextLine();
+//                    if (data.equals("exit")) {
+//                        Message message = new Message(2320L, username, "Server", data, MsgType.TALK);
+//                        os.writeObject(message);
+//                        socket.getOutputStream().flush();
+//                        Platform.exit();
+//                    }
+//                    Message message;
+//                    if (username.equals("a")) {
+//                        message = new Message(424234L, username, "b", data, MsgType.TALK);
+//                    } else {
+//                        message = new Message(424234L, username, "a", data, MsgType.TALK);
+//                    }
+//                    os.writeObject(message);
+//                    System.out.println("第二步完成");
+//                    socket.getOutputStream().flush();
+
+//                }
             }
         } catch (IOException e) {
             e.printStackTrace();

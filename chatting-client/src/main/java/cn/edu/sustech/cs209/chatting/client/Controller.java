@@ -9,6 +9,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -30,11 +31,10 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-
 public class Controller implements Initializable {
 
-    private OOS_OIS.MyObjectOutputStream moos;
-
+    public OOS_OIS.MyObjectOutputStream moos;
+    public Map<String, GroupChatFX> client_gcontroller_map = new HashMap<>();
     public Set<String> userSet = new HashSet<>();
     ObservableList<String> stringObservableList;
     ObservableList<Message> mesObservableList = FXCollections.observableArrayList();
@@ -62,7 +62,6 @@ public class Controller implements Initializable {
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-
         Dialog<String> dialog = new TextInputDialog();
         dialog.setTitle("Login");
         dialog.setHeaderText(null);
@@ -89,10 +88,7 @@ public class Controller implements Initializable {
                 try {
                     //创建一个client，以及其中的读写线程
                     Client client = new Client(username, this);
-
-                    //发送给相应的Server一个Message，说明自己连接上了，同时将自己放到users中
                     moos = client.getOs();
-
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -108,8 +104,6 @@ public class Controller implements Initializable {
             if (mouseEvent.getClickCount() == 2) {
                 talkTo = chatList.getSelectionModel().getSelectedItem();
                 privateChatHelper();
-                //将信息传递进user-user-msg中
-
             }
         });
 
@@ -169,33 +163,104 @@ public class Controller implements Initializable {
     @FXML
     public void createGroupChat() {
         Stage GroupChatChooserStage = new Stage();
-        List<CheckBox>chosenUser = new ArrayList<>();
+        List<CheckBox> chosenUser = new ArrayList<>(); //被选中的user(CheckBox)
+        List<String> chosenUser_String = new ArrayList<>();//被选中的user(String)
         Label label = new Label("choose some friend and begin your group chat! ");
         VBox under_vbox = new VBox();
         VBox upper_vbox = new VBox();
         HBox hBox = new HBox();
         Label label1 = new Label("set a name for your group: ");
         TextField textField = new TextField();
-        hBox.getChildren().addAll(label1,textField);
+        hBox.getChildren().addAll(label1, textField);
         //可选择的用户不包含当前用户，但是在创建完成群后要将当前用户加进去
         for (String s : userSet) {
             if (!s.equals(username)) {
                 chosenUser.add(new CheckBox(s));
+                chosenUser_String.add(s);
             }
         }
+        //确定创建群聊的button
         Button okBtn = new Button("OK");
-        okBtn.setOnAction(e->{
-            //发送信息给server，让server知道客户端创建群聊
+        okBtn.setOnAction(e -> {
+
+//            //创建一个新的Gcontroller，并将他加入到所在controller的list里面
+//            createNewGcontroller(textField.getText()+":"+username,textField.getText()+":"+username);
+            //将这个新的Gcontroller加入到Users中,向server发送信息
+            try {
+                moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", group_create_helper(textField.getText(), chosenUser_String), MsgType.GROUP_CREATE));
+                moos.flush();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+            System.out.println("创建信息从clinet发送到server");
+
+//            //链接fxml文件
+//            Stage groupStage = new Stage();
+//            FXMLLoader loader = new FXMLLoader(getClass().getResource("groupChatFX.fxml"));
+//            Platform.runLater(()->{
+//                try {
+//                    groupStage.setScene(new Scene(loader.load()));
+//                    groupStage.setTitle(textField.getText());
+//                    groupStage.show();
+//                } catch (IOException ex) {
+//                    ex.printStackTrace();
+//                }
+//            });
 
             GroupChatChooserStage.close();
         });
         upper_vbox.getChildren().addAll(chosenUser);
-        under_vbox.getChildren().addAll(hBox,label,upper_vbox,okBtn);
+        under_vbox.getChildren().addAll(hBox, label, upper_vbox, okBtn);
         under_vbox.setAlignment(Pos.CENTER);
         under_vbox.setPadding(new Insets(20, 20, 20, 20));
         GroupChatChooserStage.setScene(new Scene(under_vbox));
         GroupChatChooserStage.showAndWait();
     }
+
+    public void createNewGcontroller(String s, String s2) {
+        //链接fxml文件
+
+        Platform.runLater(() -> {
+            Stage groupStage = new Stage();
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("groupChatFX.fxml"));
+            try {
+                groupStage.setScene(new Scene(loader.load()));
+                GroupChatFX groupChatFX = loader.getController();
+                //更新一下该controller的表
+                this.client_gcontroller_map.put(s, groupChatFX);
+                System.out.println(client_gcontroller_map);
+                groupStage.setTitle(s2);
+                groupChatFX.setGroupname(s, this.moos);
+                groupStage.show();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        });
+    }
+
+    //返回值：第一个是Group的名字，后面是他所有的用户
+    private String group_create_helper(String str, List<String> list) {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append(str);
+        stringBuilder.append("~");
+        for (String s : list) {
+            stringBuilder.append(s).append("~");
+        }
+        return stringBuilder.append(username).toString();
+    }
+
+//    //该方法将被选中的所有用户编码成在server端被解码的data
+//    private String createGpc(List<String> strings, String sss) {
+//        StringBuilder stringBuilder = new StringBuilder();
+//        for (String s : strings) {
+//            stringBuilder.append(s);
+//            stringBuilder.append("~");
+//        }
+//        stringBuilder.append(username);
+//        stringBuilder.append("~");
+//        stringBuilder.append(sss);
+//        return stringBuilder.toString();
+//    }
 
     /**
      * Sends the message to the <b>currently selected</b> chat.
@@ -207,18 +272,21 @@ public class Controller implements Initializable {
     public void doSendMessage() throws IOException {
         // TODO
         //发送一个信息给server
-        String inputFromKeyBoard = inputArea.getText();
-        //清空原本的内容
-        inputArea.setText("");
-        //将message传给server
-        Message message = new Message(System.currentTimeMillis(), username, talkTo, inputFromKeyBoard, MsgType.TALK);
-        moos.writeObject(message);
-        //加入自己的message显示中
-        Platform.runLater(() -> {
-            mesObservableList.add(message);
-            System.out.println(mesObservableList);
-            chatContentList.setItems(mesObservableList);
-        });
+        if (inputArea.getText() != null) {
+            String inputFromKeyBoard = inputArea.getText();
+            //清空原本的内容
+            inputArea.setText("");
+            //将message传给server
+            Message message = new Message(System.currentTimeMillis(), username, talkTo, inputFromKeyBoard, MsgType.TALK);
+            moos.writeObject(message);
+            moos.flush();
+            //加入自己的message显示中
+            Platform.runLater(() -> {
+                mesObservableList.add(message);
+                System.out.println(mesObservableList);
+                chatContentList.setItems(mesObservableList);
+            });
+        }
 
     }
 
@@ -298,8 +366,8 @@ public class Controller implements Initializable {
     public void setMsgLV(Message message) {
         Platform.runLater(() -> {
             mesObservableList.add(message);
-            System.out.println(mesObservableList);
             chatContentList.setItems(mesObservableList);
+            System.out.println("更新聊天内容了" );
         });
     }
 
