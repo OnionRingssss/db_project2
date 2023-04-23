@@ -162,7 +162,6 @@ class ServerReader implements Runnable {
                             os = new OOS_OIS.MyObjectOutputStream(Users.user_socket_map.get(s).getOutputStream());
                             os.writeObject(new Message(System.currentTimeMillis(), "Server", group + ":" + s, getGusers(Users.group_users_map.get(group)), MsgType.EXIT_FROM_GROUP));
                             os.flush();
-
                         }
                         break;
 
@@ -170,6 +169,14 @@ class ServerReader implements Runnable {
                         System.out.println("Confirm server exit");
                         System.exit(0);
                         break;
+
+                    case FILE:
+                        os = new OOS_OIS.MyObjectOutputStream(Users.user_socket_map.get(message.getSendTo()).getOutputStream());
+                        os.writeObject(message);
+                        os.flush();
+                        System.out.println("客户端收到file信息，并且发送回了客户端");
+                        break;
+
                     default:
                         break;
                 }

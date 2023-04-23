@@ -51,7 +51,10 @@
                 <Color red="0.625" green="0.625" blue="0.625" fx:id="x4" />
             </textFill>
         </Label>
-        <Pane HBox.hgrow="ALWAYS" />
+        <Pane HBox.hgrow="ALWAYS">
+         <children>
+            <Button fx:id="fileBtn" layoutX="591.0" layoutY="1.0" mnemonicParsing="false" prefHeight="33.0" prefWidth="110.0" text="Send Files" />
+         </children></Pane>
         <Label fx:id="currentOnlineCnt" font="$x3" text="Online: 1" textFill="$x4" HBox.hgrow="NEVER" />
     </HBox>
 </VBox>

@@ -9,6 +9,9 @@ import javafx.scene.Parent;
 import javafx.scene.control.Alert;
 
 
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.Arrays;
@@ -153,6 +156,16 @@ class ClientReader implements Runnable {
                         String deleteUsername = message.getSendTo().split(":")[1];
                         controller.deleteChatOb(message.getSendTo(),message.getData());
                         break;
+                    case FILE:
+                        //将byte[]转化回文件
+                        String fileName = message.getData().split("---divide---")[0];
+                        String fileString = message.getData().split("---divide---")[1];
+                        byte[] bytes = fileString.getBytes();
+                        //让controller弹出一个弹窗，确定是否接受
+                        controller.receiveFile(message.getSentBy(),fileName,bytes);
+                        System.out.println("客户端收到file消息，给出弹窗");
+                        break;
+
                     default:
                         break;
                 }
@@ -162,6 +175,40 @@ class ClientReader implements Runnable {
             e.printStackTrace();
         }
     }
+
+//    private File bytesToFile(byte[] bytes, String outPath, String fileName) {
+//        BufferedOutputStream bos = null;
+//        FileOutputStream fos = null;
+//        File file = null;
+//        try {
+//            File dir = new File(outPath);
+//            if (!dir.exists() && dir.isDirectory()) { //判断文件目录是否存在
+//                dir.mkdirs();
+//            }
+//            file = new File(outPath + File.separator + fileName);
+//            fos = new FileOutputStream(file);
+//            bos = new BufferedOutputStream(fos);
+//            bos.write(bytes);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        } finally {
+//            if (bos != null) {
+//                try {
+//                    bos.close();
+//                } catch (IOException e1) {
+//                    e1.printStackTrace();
+//                }
+//            }
+//            if (fos != null) {
+//                try {
+//                    fos.close();
+//                } catch (IOException e1) {
+//                    e1.printStackTrace();
+//                }
+//            }
+//        }
+//        return file;
+//    }
 }
 
 class ClientWriter implements Runnable {

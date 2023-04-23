@@ -21,7 +21,8 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 
-import java.io.IOException;
+import javax.swing.*;
+import java.io.*;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -60,8 +61,13 @@ public class Controller implements Initializable {
     @FXML
     public Button emojiBtn;
 
-    String registerOr;
+    @FXML
+    public Button fileBtn;
 
+    private static final String beginPath = "C:\\Users\\y1211\\Desktop\\java2_assignment\\CS029A_assignment2\\fileSender";
+    private static final String outPath = "C:\\Users\\y1211\\Desktop\\java2_assignment\\CS029A_assignment2\\fileReceiver";
+
+    String registerOr;
 
 
     @Override
@@ -84,7 +90,7 @@ public class Controller implements Initializable {
                TODO: Check if there is a user with the same name among the currently logged-in users,
                      if so, ask the user to change the username
              */
-            boolean conti =true;
+            boolean conti = true;
             RLStageOperate();
             username = input1.get();
 //            password = input2.get();
@@ -97,14 +103,12 @@ public class Controller implements Initializable {
                 Alert alert1 = new Alert(Alert.AlertType.INFORMATION);
                 alert1.setTitle("Information Dialog");
                 alert1.setHeaderText(null);
-                alert1.setContentText("请先点击一位朋友表示您已经准备好进入聊天状态，可以接受他人的当前及后台聊天信息\n若不确认，默认进入勿扰状态，不会收到他人的后台消息" );
+                alert1.setContentText("请先点击一位朋友表示您已经准备好进入聊天状态，可以接受他人的当前及后台聊天信息\n若不确认，默认进入勿扰状态，不会收到他人的后台消息");
                 alert1.showAndWait();
             } catch (IOException e) {
                 e.printStackTrace();
             }
             System.out.println("usm=:" + Users.user_socket_map);
-
-
 
 
             emojiBtn.setOnAction(actionEvent -> {
@@ -121,11 +125,42 @@ public class Controller implements Initializable {
 
                 Optional<String> result = dialog.showAndWait();
                 //添加到输入中去
-                try{
-                System.out.println(result.get());
-                inputArea.setText(inputArea.getText()+result.get());}catch (NoSuchElementException e){
+                try {
+                    System.out.println(result.get());
+                    inputArea.setText(inputArea.getText() + result.get());
+                } catch (NoSuchElementException e) {
                     System.out.println("没有选择emoji,直接关掉选择器了");
                 }
+            });
+
+            //设置发送文件按钮的监听
+            fileBtn.setOnAction(actionEvent -> {
+                //将文件转换成byte[]再转换成String
+                try {
+                    JFileChooser jf = new JFileChooser(beginPath);
+                    jf.setFileSelectionMode(JFileChooser.FILES_ONLY);//只选择文件
+                    jf.showOpenDialog(null);
+                    File selectedFile = jf.getSelectedFile();
+                    String fileName = selectedFile.getName();//获得文件名
+                    FileInputStream fileInputStream = new FileInputStream(selectedFile);
+                    byte[] fileInByte = new byte[(int) selectedFile.length()];
+                    fileInputStream.read(fileInByte);
+                    fileInputStream.close();
+                    StringBuilder sb = new StringBuilder();
+                    sb.append(fileName).append("---divide---");
+                    for (byte b : fileInByte) {
+                        sb.append(b);
+                    }
+                    //发送给客户端
+                    moos.writeObject(new Message(System.currentTimeMillis(), username, talkTo, sb.toString(), MsgType.FILE));
+                    moos.flush();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }catch (NullPointerException e){
+                    System.out.println("no file");
+                }
+
+
             });
         } else {
             System.out.println("Empty username of password!");
@@ -217,7 +252,7 @@ public class Controller implements Initializable {
 //                    chosenUser_String.add(s);
                 }
             }
-            for(CheckBox checkBox:chosenUser){
+            for (CheckBox checkBox : chosenUser) {
                 checkBox.selectedProperty().addListener((observableValue, aBoolean, t1) -> chosenUser_String.add(checkBox.getText()));
             }
             //确定创建群聊的button
@@ -334,6 +369,63 @@ public class Controller implements Initializable {
             });
         }
 
+    }
+
+    public void receiveFile(String sender, String fileName, byte[] bytes) {
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Confirmation Dialog");
+            alert.setHeaderText(sender+" send you a file");
+            alert.setContentText(sender+" send you a file, do you want to receive it?");
+
+            Optional<ButtonType> result = alert.showAndWait();
+            if (result.get() == ButtonType.OK) {
+                // ... user chose OK
+                JFileChooser jFileChooser = new JFileChooser(outPath);
+                jFileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                jFileChooser.showOpenDialog(null);
+                String selectedPath = jFileChooser.getSelectedFile().getAbsolutePath();
+                bytesToFile(bytes, selectedPath, fileName);
+            } else {
+                System.out.println(userSet+" refuse the file sent by "+sender);
+            }
+
+        });
+
+    }
+
+    private File bytesToFile(byte[] bytes, String outPath, String fileName) {
+        BufferedOutputStream bos = null;
+        FileOutputStream fos = null;
+        File file = null;
+        try {
+            File dir = new File(outPath);
+            if (!dir.exists() && dir.isDirectory()) { //判断文件目录是否存在
+                dir.mkdirs();
+            }
+            file = new File(outPath + File.separator + fileName);
+            fos = new FileOutputStream(file);
+            bos = new BufferedOutputStream(fos);
+            bos.write(bytes);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (bos != null) {
+                try {
+                    bos.close();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+            }
+            if (fos != null) {
+                try {
+                    fos.close();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+            }
+        }
+        return file;
     }
 
     /**
