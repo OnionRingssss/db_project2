@@ -5,6 +5,8 @@ import cn.edu.sustech.cs209.chatting.common.MsgType;
 import cn.edu.sustech.cs209.chatting.common.OOS_OIS;
 import cn.edu.sustech.cs209.chatting.common.Users;
 import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
@@ -19,6 +21,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import javafx.util.Callback;
 
 
@@ -44,6 +47,9 @@ public class Controller implements Initializable {
 
     @FXML
     ListView<Message> chatContentList;
+
+    @FXML
+            Button emojiBtn;
 
     String username;
 
@@ -102,6 +108,8 @@ public class Controller implements Initializable {
 
         chatList.setOnMouseClicked(mouseEvent -> {
             if (mouseEvent.getClickCount() == 2) {
+                System.out.println(chatList.getSelectionModel().getSelectedItem().getClass());
+                System.out.println(chatList.getItems().getClass());
                 talkTo = chatList.getSelectionModel().getSelectedItem();
                 privateChatHelper();
             }
@@ -113,6 +121,7 @@ public class Controller implements Initializable {
 
     @FXML
     public void createPrivateChat() {
+
         AtomicReference<String> user = new AtomicReference<>();
 
         //该stage为弹出供我们选择私聊对象的stage
@@ -162,37 +171,38 @@ public class Controller implements Initializable {
      */
     @FXML
     public void createGroupChat() {
-        Stage GroupChatChooserStage = new Stage();
-        List<CheckBox> chosenUser = new ArrayList<>(); //被选中的user(CheckBox)
-        List<String> chosenUser_String = new ArrayList<>();//被选中的user(String)
-        Label label = new Label("choose some friend and begin your group chat! ");
-        VBox under_vbox = new VBox();
-        VBox upper_vbox = new VBox();
-        HBox hBox = new HBox();
-        Label label1 = new Label("set a name for your group: ");
-        TextField textField = new TextField();
-        hBox.getChildren().addAll(label1, textField);
-        //可选择的用户不包含当前用户，但是在创建完成群后要将当前用户加进去
-        for (String s : userSet) {
-            if (!s.equals(username)) {
-                chosenUser.add(new CheckBox(s));
-                chosenUser_String.add(s);
+        if (userSet.size() >= 3) {
+            Stage GroupChatChooserStage = new Stage();
+            List<CheckBox> chosenUser = new ArrayList<>(); //被选中的user(CheckBox)
+            List<String> chosenUser_String = new ArrayList<>();//被选中的user(String)
+            Label label = new Label("choose some friend and begin your group chat! ");
+            VBox under_vbox = new VBox();
+            VBox upper_vbox = new VBox();
+            HBox hBox = new HBox();
+            Label label1 = new Label("set a name for your group: ");
+            TextField textField = new TextField();
+            hBox.getChildren().addAll(label1, textField);
+            //可选择的用户不包含当前用户，但是在创建完成群后要将当前用户加进去
+            for (String s : userSet) {
+                if (!s.equals(username)) {
+                    chosenUser.add(new CheckBox(s));
+                    chosenUser_String.add(s);
+                }
             }
-        }
-        //确定创建群聊的button
-        Button okBtn = new Button("OK");
-        okBtn.setOnAction(e -> {
+            //确定创建群聊的button
+            Button okBtn = new Button("OK");
+            okBtn.setOnAction(e -> {
 
 //            //创建一个新的Gcontroller，并将他加入到所在controller的list里面
 //            createNewGcontroller(textField.getText()+":"+username,textField.getText()+":"+username);
-            //将这个新的Gcontroller加入到Users中,向server发送信息
-            try {
-                moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", group_create_helper(textField.getText(), chosenUser_String), MsgType.GROUP_CREATE));
-                moos.flush();
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-            System.out.println("创建信息从clinet发送到server");
+                //将这个新的Gcontroller加入到Users中,向server发送信息
+                try {
+                    moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", group_create_helper(textField.getText(), chosenUser_String), MsgType.GROUP_CREATE));
+                    moos.flush();
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+                System.out.println("创建信息从clinet发送到server");
 
 //            //链接fxml文件
 //            Stage groupStage = new Stage();
@@ -207,14 +217,21 @@ public class Controller implements Initializable {
 //                }
 //            });
 
-            GroupChatChooserStage.close();
-        });
-        upper_vbox.getChildren().addAll(chosenUser);
-        under_vbox.getChildren().addAll(hBox, label, upper_vbox, okBtn);
-        under_vbox.setAlignment(Pos.CENTER);
-        under_vbox.setPadding(new Insets(20, 20, 20, 20));
-        GroupChatChooserStage.setScene(new Scene(under_vbox));
-        GroupChatChooserStage.showAndWait();
+                GroupChatChooserStage.close();
+            });
+            upper_vbox.getChildren().addAll(chosenUser);
+            under_vbox.getChildren().addAll(hBox, label, upper_vbox, okBtn);
+            under_vbox.setAlignment(Pos.CENTER);
+            under_vbox.setPadding(new Insets(20, 20, 20, 20));
+            GroupChatChooserStage.setScene(new Scene(under_vbox));
+            GroupChatChooserStage.showAndWait();
+        } else {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("only 2 people");
+            alert.setHeaderText("only 2 people!");
+            alert.setContentText("we cannot create a group with no more than 2 people");
+            alert.showAndWait();
+        }
     }
 
     public void createNewGcontroller(String s, String s2) {
@@ -231,6 +248,13 @@ public class Controller implements Initializable {
                 System.out.println(client_gcontroller_map);
                 groupStage.setTitle(s2);
                 groupChatFX.setGroupname(s, this.moos);
+                groupStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+                    @Override
+                    public void handle(WindowEvent windowEvent) {
+                        //发送给server信息，将该用户从group中踢出去
+
+                    }
+                });
                 groupStage.show();
             } catch (IOException ex) {
                 ex.printStackTrace();
@@ -334,6 +358,32 @@ public class Controller implements Initializable {
         }
     }
 
+    public void addEmoji(){
+        VBox vbox = new VBox(); // 创建一个垂直箱子
+        HBox hbox = new HBox(); // 创建一个水平箱子
+        RadioButton rb1 = new RadioButton("笑"); // 创建一个单选按钮
+        rb1.setSelected(true); // 设置按钮是否选中
+        RadioButton rb2 = new RadioButton("哭"); // 创建一个单选按钮
+        RadioButton rb3 = new RadioButton("黑椒牛排饭"); // 创建一个单选按钮
+        hbox.getChildren().addAll(rb1, rb2, rb3); // 把三个单选按钮一起加到水平箱子上
+        ToggleGroup group = new ToggleGroup(); // 创建一个按钮小组
+        rb1.setToggleGroup(group); // 把单选按钮1加入到按钮小组
+        rb2.setToggleGroup(group); // 把单选按钮2加入到按钮小组
+        rb3.setToggleGroup(group); // 把单选按钮3加入到按钮小组
+        Label label = new Label("这里查看点餐结果"); // 创建一个标签
+        label.setWrapText(true); // 设置标签文本是否支持自动换行
+        vbox.getChildren().addAll(hbox, label); // 把水平箱子和标签一起加到垂直箱子上
+        // 设置单选组合的单击监听器
+        group.selectedToggleProperty().addListener(new ChangeListener<Toggle>() {
+            @Override
+            public void changed(ObservableValue<? extends Toggle> arg0, Toggle old_toggle, Toggle new_toggle) {
+                // 在标签上显示当前选中的单选按钮文本
+                label.setText("您点了" + ((RadioButton)new_toggle).getText());
+            }
+        });
+
+    }
+
     //左下角当前用户显示
     public void setCurrentUsername(String name) {
         currentUsername.setText("Current User: " + name);
@@ -367,7 +417,7 @@ public class Controller implements Initializable {
         Platform.runLater(() -> {
             mesObservableList.add(message);
             chatContentList.setItems(mesObservableList);
-            System.out.println("更新聊天内容了" );
+            System.out.println("更新聊天内容了");
         });
     }
 
@@ -391,4 +441,35 @@ public class Controller implements Initializable {
         talkWith.setText("talking to: " + talkTo);
     }
 
+
+    public void Pop_window(String s){
+        Platform.runLater(()->{
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Someone quit: "+ s);
+            alert.setHeaderText("Do you wanna keep the chat stage with "+s);
+            alert.setContentText("Choose your option");
+
+            ButtonType buttonTypeOne = new ButtonType("Yes");
+            ButtonType buttonTypeTwo = new ButtonType("No");
+            ButtonType buttonTypeCancel = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
+
+            alert.getButtonTypes().setAll(buttonTypeOne, buttonTypeTwo, buttonTypeCancel);
+
+            Optional<ButtonType> result = alert.showAndWait();
+            if (result.get() == buttonTypeOne){
+                alert.close();
+            } else if (result.get() == buttonTypeTwo) {
+                // ... user chose "Two"
+                //发送消息告诉我不要了
+                try {
+                    moos.writeObject(new Message(System.currentTimeMillis(), username,"Server","no keep",MsgType.EXIT_NO_KEEP));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                alert.close();
+            }
+        });
+
+    }
 }

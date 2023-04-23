@@ -6,6 +6,7 @@ import cn.edu.sustech.cs209.chatting.common.OOS_OIS;
 import cn.edu.sustech.cs209.chatting.common.Users;
 
 
+
 import java.io.*;
 import java.net.Socket;
 import java.util.*;
@@ -49,20 +50,46 @@ class ServerReader implements Runnable {
 
                         }
                         break;
-                    case G_COMMAND://创建了一个群
-//                        //将User.中的Map丰富
-//                        Users.userGroup_socket_map.put(message.getSentBy(), socket);
-//                        //刷新Gclient的userlist表，向所有连接的发送一个新的userlist
-//                        System.out.println("G：发送新的userlist");
-//                        System.out.println(Users.userGroup_socket_map);
-//                        String userString = GgetUsers();
-//                        for (Map.Entry<String, Socket> entry : Users.userGroup_socket_map.entrySet()) {
+                    case EXIT:
+                        //将该controller代表的user从userlist中清除出去
+                        Users.user_socket_map.remove(message.getSentBy());
+                        //向每一个发信息，返回下线的username
+                        for(Map.Entry<String, Socket>entry:Users.user_socket_map.entrySet()){
+                            os = new OOS_OIS.MyObjectOutputStream(entry.getValue().getOutputStream());
+                            os.writeObject(new Message(System.currentTimeMillis(),message.getSentBy(),entry.getKey(),Integer.toString(Users.user_socket_map.size()),MsgType.EXIT));
+                            os.flush();
+                        }
+                        //向每一个在线的client发送消息，返回退出的username
+//                        String userString = getUsers();
+//                        for(Map.Entry<String, Socket>entry:Users.user_socket_map.entrySet()){
 //                            os = new OOS_OIS.MyObjectOutputStream(entry.getValue().getOutputStream());
-//                            os.writeObject(new Message(System.currentTimeMillis(), "Server", entry.getKey(), userString, MsgType.G_REQ));
-//                            System.out.println("新的userlist返回成功");
+//                            os.writeObject(new Message(System.currentTimeMillis(),message.getSentBy(),entry.getKey(),userString,MsgType.EXIT));
 //                            os.flush();
 //                        }
                         break;
+                    case EXIT_NO_KEEP:
+                        //向每一个在线的client发送消息，返回退出的username
+                        String userString = getUsers();
+                        for(Map.Entry<String, Socket>entry:Users.user_socket_map.entrySet()){
+                            os = new OOS_OIS.MyObjectOutputStream(entry.getValue().getOutputStream());
+                            os.writeObject(new Message(System.currentTimeMillis(),message.getSentBy(),entry.getKey(),userString,MsgType.EXIT_NO_KEEP));
+                            os.flush();
+                        }
+                        break;
+//                    case G_COMMAND://创建了一个群
+////                        //将User.中的Map丰富
+////                        Users.userGroup_socket_map.put(message.getSentBy(), socket);
+////                        //刷新Gclient的userlist表，向所有连接的发送一个新的userlist
+////                        System.out.println("G：发送新的userlist");
+////                        System.out.println(Users.userGroup_socket_map);
+////                        String userString = GgetUsers();
+////                        for (Map.Entry<String, Socket> entry : Users.userGroup_socket_map.entrySet()) {
+////                            os = new OOS_OIS.MyObjectOutputStream(entry.getValue().getOutputStream());
+////                            os.writeObject(new Message(System.currentTimeMillis(), "Server", entry.getKey(), userString, MsgType.G_REQ));
+////                            System.out.println("新的userlist返回成功");
+////                            os.flush();
+////                        }
+//                        break;
                     case TALK:
                         //用户发送信息给另一个用户
                         //如果另一个用户在线
@@ -173,6 +200,10 @@ class ServerReader implements Runnable {
                             System.out.println("创建信息返回clients");
                         }
                         break;
+                    case SERVER_EXIT:
+                        System.out.println("Confirm server exit");
+                        System.exit(0);
+                        break;
                     default:
                         break;
                 }
@@ -201,6 +232,8 @@ class ServerReader implements Runnable {
 //        return new Message(System.currentTimeMillis(),"Server",m.getSentBy(),stringBuilder.substring(0,stringBuilder.length()-1),MsgType.REQ);
         return stringBuilder.append(Users.user_socket_map.size()).toString();
     }
+
+
 
 
 }

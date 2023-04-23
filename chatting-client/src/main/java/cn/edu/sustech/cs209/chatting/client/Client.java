@@ -4,20 +4,15 @@ import cn.edu.sustech.cs209.chatting.common.Message;
 import cn.edu.sustech.cs209.chatting.common.MsgType;
 import cn.edu.sustech.cs209.chatting.common.OOS_OIS;
 import javafx.application.Platform;
-import javafx.collections.FXCollections;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.scene.layout.VBox;
-import javafx.stage.Stage;
-import javafx.stage.WindowEvent;
+import javafx.scene.control.Alert;
 
-import java.io.*;
+
+import java.io.IOException;
 import java.net.Socket;
 import java.util.Arrays;
-import java.util.Scanner;
+import java.util.Optional;
 
 public class Client {
     private Socket socket;
@@ -33,7 +28,7 @@ public class Client {
         ois = new OOS_OIS.MyObjectInputStream(this.socket.getInputStream());
         os = new OOS_OIS.MyObjectOutputStream(this.socket.getOutputStream());
         Thread cw = new Thread(new ClientWriter(socket, username, os, this.controller));
-        Thread cr = new Thread(new ClientReader(socket, ois, os,this.controller));
+        Thread cr = new Thread(new ClientReader(socket, ois, os, this.controller));
         cw.start();
         cr.start();
     }
@@ -82,7 +77,7 @@ class ClientReader implements Runnable {
                     case COMMAND:
                         break;
                     case TALK:
-                        System.out.println("从server回来的聊天记录message："+message.getData());
+                        System.out.println("从server回来的聊天记录message：" + message.getData());
                         controller.setMsgLV(message);
                         break;
                     case REQ:
@@ -96,6 +91,30 @@ class ClientReader implements Runnable {
 //                        System.out.println("controlset:"+controller.userSet);
                         //设置在线人数
                         controller.setCuNum(a);
+                        break;
+                    case EXIT:
+                        //收到信息后，重新设置一下
+                        controller.setCuNum(message.getData());
+                        //设置一个弹窗，选择保留或者是清除退出的user
+                        controller.Pop_window(message.getSentBy());
+
+                            // ... user chose CANCEL or closed the dialog
+
+
+//                        String[] reqString1 = message.getData().split("~");
+//                        String a1 = reqString1[reqString1.length - 1];
+//                        String[] reqStrin1 = Arrays.copyOf(reqString1, reqString1.length - 1);
+//                        controller.userSet.remove(message.getSentBy());
+//                        controller.setLeftLV(reqStrin1);
+//                        controller.setCuNum(a1);
+                        break;
+                    case EXIT_NO_KEEP:
+                        String[] reqString1 = message.getData().split("~");
+                        String a1 = reqString1[reqString1.length - 1];
+                        String[] reqStrin1 = Arrays.copyOf(reqString1, reqString1.length - 1);
+                        controller.userSet.remove(message.getSentBy());
+                        controller.setLeftLV(reqStrin1);
+                        controller.setCuNum(a1);
                         break;
 //                    case GROUP_CREATE://如果收到了来自server的群聊要求
 //                        //创建群聊界面
@@ -126,11 +145,11 @@ class ClientReader implements Runnable {
 //                        });
 //                        break;
                     case G_TALK:
-                        System.out.println("con.client_gcontroler map:"+controller.client_gcontroller_map);
+                        System.out.println("con.client_gcontroler map:" + controller.client_gcontroller_map);
                         this.controller.client_gcontroller_map.get(message.getSendTo()).GsetMsgLV(message);
                         break;
                     case G_CREATEGCONTROLLER:
-                        this.controller.createNewGcontroller(message.getData()+":"+message.getSendTo(),message.getData());
+                        this.controller.createNewGcontroller(message.getData() + ":" + message.getSendTo(), message.getData());
                         System.out.println("client接受创建信息");
 
 //                        //链接fxml文件
@@ -151,6 +170,23 @@ class ClientReader implements Runnable {
 //                        controller.mesObservableList = FXCollections.observableArrayList();
 //                        controller.chatContentList.setItems(controller.mesObservableList);
 //                        break;
+                    case SERVER_EXIT:
+                        Platform.runLater(()->{Alert alert1 = new Alert(Alert.AlertType.INFORMATION);
+                            alert1.setTitle("Information Dialog");
+                            alert1.setHeaderText("Server exit");
+                            alert1.setContentText("Server exit! You will exit in several seconds···");
+                            alert1.showAndWait();
+                            try {
+                                os.writeObject(new Message(System.currentTimeMillis(), controller.username, "Server","confirm server exit",MsgType.SERVER_EXIT));
+                                os.flush();
+                                System.exit(0);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        });
+
+
+                        break;
                     default:
                         break;
                 }

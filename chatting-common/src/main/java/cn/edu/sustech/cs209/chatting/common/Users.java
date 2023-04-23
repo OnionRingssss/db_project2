@@ -20,4 +20,5 @@ public class Users implements Serializable {
 
     public static Map<String,Socket> userGroup_socket_map = new ConcurrentHashMap<>();
 
+    public static boolean server_situ = true;
 }
