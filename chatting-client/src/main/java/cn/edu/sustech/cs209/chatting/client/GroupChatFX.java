@@ -6,6 +6,8 @@ import cn.edu.sustech.cs209.chatting.common.OOS_OIS;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
@@ -30,9 +32,15 @@ public class GroupChatFX implements Initializable {
     @FXML
     public Label GcurrentOnlineCnt;
     @FXML
+    public Button GemojiBtn;
+    @FXML
     private VBox rootLout;
     @FXML
     private Label GusernameLl;
+
+    public void setGusernameLl(String in){
+        GusernameLl.setText("The number of users in group: "+ in);
+    }
 
 
 
@@ -41,33 +49,31 @@ public class GroupChatFX implements Initializable {
     public OOS_OIS.MyObjectOutputStream Gmoos;
     public Set<String> GuserSet = new HashSet<>();
     ObservableList<Message> messageObservableList = FXCollections.observableArrayList();
+    ObservableList<String> onlineUserInGroupList = FXCollections.observableArrayList();
 
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-//        Dialog<String> dialog1 = new TextInputDialog();
-//        dialog1.setTitle("Group_Name_Set");
-//        dialog1.setHeaderText(null);
-//        dialog1.setContentText("自定义群聊名称:");
-//        Optional<String> input1 = dialog1.showAndWait();
-//
-//        Dialog<String> dialog = new TextInputDialog();
-//        dialog.setTitle("Group Login");
-//        dialog.setHeaderText(null);
-//        dialog.setContentText("自定义你在群里的id:");
-//        Optional<String> input = dialog.showAndWait();
-//        //这里可以加个判断
-//        username = input.get();
-//        belongTo = input1.get()+":"+username;
+        GemojiBtn.setOnAction(actionEvent -> {
+            //弹出一个选择弹窗，选择想要的表情
+            List<String> choices = new ArrayList<>();
+            choices.add("\uD83D\uDE04");
+            choices.add("\uD83D\uDE38");
+            choices.add("\uD83D\uDE1F");
 
-//        try {
-//            Gclient gclient = new Gclient(belongTo, this);
-//            Gmoos = gclient.getOs();
-//
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
+            ChoiceDialog<String> dialog = new ChoiceDialog<>("\uD83D\uDE04", choices);
+            dialog.setTitle("Choice Dialog");
+            dialog.setHeaderText("Look, a Choice Dialog");
+            dialog.setContentText("Choose your emoji: ");
 
+            Optional<String> result = dialog.showAndWait();
+            //添加到输入中去
+            try{
+                System.out.println(result.get());
+                GinputArea.setText(GinputArea.getText()+result.get());}catch (NoSuchElementException e){
+                System.out.println("没有选择emoji,直接关掉选择器了");
+            }
+        });
         GchatContentList.setCellFactory(new MessageCellFactory());
         GchatContentList.setItems(messageObservableList);
         System.out.println("groupname "+groupname);
@@ -104,6 +110,30 @@ public class GroupChatFX implements Initializable {
             messageObservableList.add(message);
             GchatContentList.setItems(messageObservableList);
             System.out.println("已经加入到自己的显示中");
+        });
+    }
+    public void GsetLeftLV(String string){
+        Platform.runLater(()->{
+//            ArrayList<String >strs = new ArrayList<>();
+//            for(String s :GuserSet){
+//                strs.add(s);
+//            }
+//            String[] sss = new String[strs.size()];
+//            for(int i =0;i<strs.size();i++){
+//                sss[i] = strs.get(i);
+//            }
+//            onlineUserInGroupList = FXCollections.observableArrayList(Arrays.asList(sss));
+//            GchatList.setItems(onlineUserInGroupList);
+            ArrayList<String>str = new ArrayList<>();
+            for(String s: string.split("~")){
+                str.add(s);
+            }
+            String[]sss = new String[str.size()];
+            for(int i =0;i<str.size();i++){
+                sss[i] = str.get(i);
+            }
+            onlineUserInGroupList = FXCollections.observableArrayList(Arrays.asList(sss));
+            GchatList.setItems(onlineUserInGroupList);
         });
     }
 

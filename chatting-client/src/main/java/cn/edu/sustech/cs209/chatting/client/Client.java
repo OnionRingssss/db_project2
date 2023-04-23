@@ -21,9 +21,11 @@ public class Client {
     private OOS_OIS.MyObjectOutputStream os;
     private Controller controller;
 
+
     Client(String username, Controller controller) throws IOException {
         socket = new Socket("localhost", 6666);
         this.username = username;
+
         this.controller = controller;
         ois = new OOS_OIS.MyObjectInputStream(this.socket.getInputStream());
         os = new OOS_OIS.MyObjectOutputStream(this.socket.getOutputStream());
@@ -76,10 +78,12 @@ class ClientReader implements Runnable {
                 switch (message.getType()) {
                     case COMMAND:
                         break;
+
                     case TALK:
                         System.out.println("从server回来的聊天记录message：" + message.getData());
                         controller.setMsgLV(message);
                         break;
+
                     case REQ:
 //                        System.out.println(message.getData());
                         //完善每一个client的userset和此时连接上客户端的user数量
@@ -92,22 +96,20 @@ class ClientReader implements Runnable {
                         //设置在线人数
                         controller.setCuNum(a);
                         break;
+
+                    case G_CREATEGCONTROLLER:
+                        //group:username
+                        this.controller.createNewGcontroller(message.getSentBy() + ":" + message.getSendTo(), message.getSentBy(),message.getData());
+                        System.out.println("client接受创建信息");
+                        break;
+
                     case EXIT:
                         //收到信息后，重新设置一下
                         controller.setCuNum(message.getData());
                         //设置一个弹窗，选择保留或者是清除退出的user
                         controller.Pop_window(message.getSentBy());
-
-                            // ... user chose CANCEL or closed the dialog
-
-
-//                        String[] reqString1 = message.getData().split("~");
-//                        String a1 = reqString1[reqString1.length - 1];
-//                        String[] reqStrin1 = Arrays.copyOf(reqString1, reqString1.length - 1);
-//                        controller.userSet.remove(message.getSentBy());
-//                        controller.setLeftLV(reqStrin1);
-//                        controller.setCuNum(a1);
                         break;
+
                     case EXIT_NO_KEEP:
                         String[] reqString1 = message.getData().split("~");
                         String a1 = reqString1[reqString1.length - 1];
@@ -116,76 +118,40 @@ class ClientReader implements Runnable {
                         controller.setLeftLV(reqStrin1);
                         controller.setCuNum(a1);
                         break;
-//                    case GROUP_CREATE://如果收到了来自server的群聊要求
-//                        //创建群聊界面
-//                        FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("groupChatFX.fxml"));
-//                        Platform.runLater(() -> {
-//                            System.out.println("pola dsaf");
-//                            Stage groupStage = new Stage();
-////                            //给stage设置一个关闭监听
-////                            groupStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
-////                                @Override
-////                                public void handle(WindowEvent windowEvent) {
-////                                    //发送一个关闭的消息给server
-////
-////                                }
-////                            });
-//                            try {
-//                                groupStage.setScene(new Scene(fxmlLoader.load()));
-//                            } catch (IOException e) {
-//                                e.printStackTrace();
-//                            }
-//                                GroupChatFX groupChatFX = fxmlLoader.getController();
-//
-//
-//                            groupStage.setTitle(message.getData()+":"+message.getSendTo());
-//                            groupStage.show();
-//
-//
-//                        });
-//                        break;
+
                     case G_TALK:
                         System.out.println("con.client_gcontroler map:" + controller.client_gcontroller_map);
                         this.controller.client_gcontroller_map.get(message.getSendTo()).GsetMsgLV(message);
                         break;
-                    case G_CREATEGCONTROLLER:
-                        this.controller.createNewGcontroller(message.getData() + ":" + message.getSendTo(), message.getData());
-                        System.out.println("client接受创建信息");
 
-//                        //链接fxml文件
-//                        Stage groupStage = new Stage();
-//                        FXMLLoader loader = new FXMLLoader(getClass().getResource("groupChatFX.fxml"));
-//                        Platform.runLater(()->{
-//                            try {
-//                                groupStage.setScene(new Scene(loader.load()));
-//                                groupStage.setTitle(message.getData());
-//                                groupStage.show();
-//                            } catch (IOException ex) {
-//                                ex.printStackTrace();
-//                            }
-//                        });
 
-                        break;
-//                    case CLEAR://清空
-//                        controller.mesObservableList = FXCollections.observableArrayList();
-//                        controller.chatContentList.setItems(controller.mesObservableList);
-//                        break;
+
                     case SERVER_EXIT:
-                        Platform.runLater(()->{Alert alert1 = new Alert(Alert.AlertType.INFORMATION);
+                        Platform.runLater(() -> {
+                            Alert alert1 = new Alert(Alert.AlertType.INFORMATION);
                             alert1.setTitle("Information Dialog");
                             alert1.setHeaderText("Server exit");
                             alert1.setContentText("Server exit! You will exit in several seconds···");
                             alert1.showAndWait();
                             try {
-                                os.writeObject(new Message(System.currentTimeMillis(), controller.username, "Server","confirm server exit",MsgType.SERVER_EXIT));
+                                os.writeObject(new Message(System.currentTimeMillis(), controller.username, "Server", "confirm server exit", MsgType.SERVER_EXIT));
                                 os.flush();
                                 System.exit(0);
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
                         });
-
-
+                        break;
+                    case NOT_ALLOW_LOGIN:
+                        controller.ntAllowLoginFeedBk();
+                        break;
+                    case R_FIAL:
+                        controller.r_fail();
+                        break;
+                    case EXIT_FROM_GROUP:
+                        String group = message.getSendTo().split(":")[0];
+                        String deleteUsername = message.getSendTo().split(":")[1];
+                        controller.deleteChatOb(message.getSendTo(),message.getData());
                         break;
                     default:
                         break;
@@ -204,9 +170,11 @@ class ClientWriter implements Runnable {
     OOS_OIS.MyObjectOutputStream os;
     Controller controller;
 
+
     public ClientWriter(Socket socket, String username, OOS_OIS.MyObjectOutputStream os, Controller controller) {
         this.socket = socket;
         this.username = username;
+
         this.os = os;
         this.controller = controller;
     }
@@ -219,7 +187,8 @@ class ClientWriter implements Runnable {
             int controlNum = 0;
             while (true) {
                 if (controlNum == 0) {
-                    Message message = new Message(232L, username, "Server", "login", MsgType.COMMAND);
+                    Message message = new Message(System.currentTimeMillis(),
+                            username, "Server", "login",MsgType.COMMAND);
                     os.writeObject(message);
                     socket.getOutputStream().flush();
                     controlNum++;

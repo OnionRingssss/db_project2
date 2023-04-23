@@ -21,20 +21,17 @@ public class Main {
 
     public static void main(String[] args) {
         System.out.println("Starting server");
-        Thread exitThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                Scanner inputExit = new Scanner(System.in);
-                while (inputExit.hasNext()){
-                    String i = inputExit.next();
-                    if(i.equals("exit")){
-                        System.out.println("server exit");
-                        for(OOS_OIS.MyObjectOutputStream o :oosSet){
-                            try {
-                                o.writeObject(new Message(System.currentTimeMillis(),"Server","Server","server exit",MsgType.SERVER_EXIT));
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
+        Thread exitThread = new Thread(() -> {
+            Scanner inputExit = new Scanner(System.in);
+            while (inputExit.hasNext()){
+                String i = inputExit.next();
+                if(i.equals("exit")){
+                    System.out.println("server exit");
+                    for(OOS_OIS.MyObjectOutputStream o :oosSet){
+                        try {
+                            o.writeObject(new Message(System.currentTimeMillis(),"Server","Server","server exit",MsgType.SERVER_EXIT));
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
                     }
                 }

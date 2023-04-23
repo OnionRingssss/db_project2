@@ -4,7 +4,7 @@ import cn.edu.sustech.cs209.chatting.common.Message;
 import cn.edu.sustech.cs209.chatting.common.MsgType;
 import cn.edu.sustech.cs209.chatting.common.Users;
 import javafx.application.Application;
-import javafx.event.EventHandler;
+
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;

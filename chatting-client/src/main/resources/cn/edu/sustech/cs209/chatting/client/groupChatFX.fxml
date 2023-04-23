@@ -17,10 +17,11 @@
             <SplitPane dividerPositions="0.8001567398119123" orientation="VERTICAL" prefHeight="200.0" prefWidth="160.0">
               <items>
                   <ListView fx:id="GchatContentList" prefHeight="200.0" prefWidth="200.0" />
-                  <HBox prefHeight="64.0" prefWidth="592.0">
+                  <HBox prefHeight="98.0" prefWidth="557.0">
                      <children>
-                        <TextArea fx:id="GinputArea" prefHeight="82.0" prefWidth="524.0" />
-                        <Button mnemonicParsing="false" onAction="#doSendMessage" prefHeight="82.0" prefWidth="69.0" text="Send" />
+                        <TextArea fx:id="GinputArea" prefHeight="98.0" prefWidth="474.0" />
+                        <Button fx:id="GemojiBtn" mnemonicParsing="false" prefHeight="99.0" prefWidth="55.0" text="emoji" />
+                        <Button mnemonicParsing="false" onAction="#doSendMessage" prefHeight="108.0" prefWidth="64.0" text="Send" />
                      </children>
                   </HBox>
               </items>

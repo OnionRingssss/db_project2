@@ -1,14 +1,12 @@
 package cn.edu.sustech.cs209.chatting.client;
 
-import cn.edu.sustech.cs209.chatting.common.Message;
-import cn.edu.sustech.cs209.chatting.common.MsgType;
-import cn.edu.sustech.cs209.chatting.common.OOS_OIS;
-import cn.edu.sustech.cs209.chatting.common.Users;
+import cn.edu.sustech.cs209.chatting.common.*;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -21,22 +19,17 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import javafx.stage.WindowEvent;
 import javafx.util.Callback;
 
-
 import java.io.IOException;
-
-import java.net.Socket;
 import java.net.URL;
-import java.sql.Time;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Controller implements Initializable {
 
     public OOS_OIS.MyObjectOutputStream moos;
+    public Map<String, GroupChatFX> group_gcontroller_map = new HashMap<>();
     public Map<String, GroupChatFX> client_gcontroller_map = new HashMap<>();
     public Set<String> userSet = new HashSet<>();
     ObservableList<String> stringObservableList;
@@ -48,10 +41,9 @@ public class Controller implements Initializable {
     @FXML
     ListView<Message> chatContentList;
 
-    @FXML
-            Button emojiBtn;
 
     String username;
+    String password;
 
     @FXML
     private Label currentUsername;
@@ -65,42 +57,78 @@ public class Controller implements Initializable {
     @FXML
     public Label currentOnlineCnt;
 
+    @FXML
+    public Button emojiBtn;
+
+    String registerOr;
+
+
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        Dialog<String> dialog = new TextInputDialog();
-        dialog.setTitle("Login");
-        dialog.setHeaderText(null);
-        dialog.setContentText("Username:");
+        Dialog<String> dialog1 = new TextInputDialog();
+        dialog1.setTitle("Login-username");
+        dialog1.setHeaderText(null);
+        dialog1.setContentText("Username:");
+        Optional<String> input1 = dialog1.showAndWait();
+
+//        Dialog<String> dialog2 = new TextInputDialog();
+//        dialog2.setTitle("Login-password");
+//        dialog2.setHeaderText(null);
+//        dialog2.setContentText("Password:");
+//        Optional<String> input2 = dialog2.showAndWait();
 
 
-        Optional<String> input = dialog.showAndWait();
-        if (input.isPresent() && !input.get().isEmpty()) {
+        if (input1.isPresent() && !input1.get().isEmpty()) {
             /*
                TODO: Check if there is a user with the same name among the currently logged-in users,
                      if so, ask the user to change the username
              */
-            System.out.println(Users.user_socket_map);
-            if (Users.user_socket_map.containsKey(input.get())) {
-                Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setTitle("repetitive username");
-                alert.setHeaderText("repetitive username");
-                alert.setContentText("You entered a repetitive username, please change it later.");
-                alert.showAndWait();
-                Platform.exit();
-            } else {
-                username = input.get();
-                setCurrentUsername(username);
-                try {
-                    //创建一个client，以及其中的读写线程
-                    Client client = new Client(username, this);
-                    moos = client.getOs();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+            boolean conti =true;
+            RLStageOperate();
+            username = input1.get();
+//            password = input2.get();
+            setCurrentUsername(username);
+            try {
+                //创建一个client，以及其中的读写线程
+                Client client = new Client(username, this);
+                moos = client.getOs();
+                //给提示：
+                Alert alert1 = new Alert(Alert.AlertType.INFORMATION);
+                alert1.setTitle("Information Dialog");
+                alert1.setHeaderText(null);
+                alert1.setContentText("请先点击一位朋友表示您已经准备好进入聊天状态，可以接受他人的当前及后台聊天信息\n若不确认，默认进入勿扰状态，不会收到他人的后台消息" );
+                alert1.showAndWait();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+            System.out.println("usm=:" + Users.user_socket_map);
+
+
+
+
+            emojiBtn.setOnAction(actionEvent -> {
+                //弹出一个选择弹窗，选择想要的表情
+                List<String> choices = new ArrayList<>();
+                choices.add("\uD83D\uDE04");
+                choices.add("\uD83D\uDE38");
+                choices.add("\uD83D\uDE1F");
+
+                ChoiceDialog<String> dialog = new ChoiceDialog<>("\uD83D\uDE04", choices);
+                dialog.setTitle("Choice Dialog");
+                dialog.setHeaderText("Look, a Choice Dialog");
+                dialog.setContentText("Choose your emoji: ");
+
+                Optional<String> result = dialog.showAndWait();
+                //添加到输入中去
+                try{
+                System.out.println(result.get());
+                inputArea.setText(inputArea.getText()+result.get());}catch (NoSuchElementException e){
+                    System.out.println("没有选择emoji,直接关掉选择器了");
+                }
+            });
         } else {
-            System.out.println("Invalid username " + input + ", exiting");
+            System.out.println("Empty username of password!");
             Platform.exit();
         }
         String displayTalkTo = "talking to: " + talkTo;
@@ -186,8 +214,11 @@ public class Controller implements Initializable {
             for (String s : userSet) {
                 if (!s.equals(username)) {
                     chosenUser.add(new CheckBox(s));
-                    chosenUser_String.add(s);
+//                    chosenUser_String.add(s);
                 }
+            }
+            for(CheckBox checkBox:chosenUser){
+                checkBox.selectedProperty().addListener((observableValue, aBoolean, t1) -> chosenUser_String.add(checkBox.getText()));
             }
             //确定创建群聊的button
             Button okBtn = new Button("OK");
@@ -203,19 +234,6 @@ public class Controller implements Initializable {
                     ex.printStackTrace();
                 }
                 System.out.println("创建信息从clinet发送到server");
-
-//            //链接fxml文件
-//            Stage groupStage = new Stage();
-//            FXMLLoader loader = new FXMLLoader(getClass().getResource("groupChatFX.fxml"));
-//            Platform.runLater(()->{
-//                try {
-//                    groupStage.setScene(new Scene(loader.load()));
-//                    groupStage.setTitle(textField.getText());
-//                    groupStage.show();
-//                } catch (IOException ex) {
-//                    ex.printStackTrace();
-//                }
-//            });
 
                 GroupChatChooserStage.close();
             });
@@ -234,32 +252,48 @@ public class Controller implements Initializable {
         }
     }
 
-    public void createNewGcontroller(String s, String s2) {
-        //链接fxml文件
+    public void createNewGcontroller(String s, String s2, String s3) {
 
         Platform.runLater(() -> {
             Stage groupStage = new Stage();
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("groupChatFX.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("groupChatFX.fxml"));//链接fxml文件
             try {
                 groupStage.setScene(new Scene(loader.load()));
                 GroupChatFX groupChatFX = loader.getController();
                 //更新一下该controller的表
                 this.client_gcontroller_map.put(s, groupChatFX);
-                System.out.println(client_gcontroller_map);
+                this.group_gcontroller_map.put(s.split(":")[0], groupChatFX);
+                //让这个groupChatFX的userset完善
+                String[] userStringList = s3.split("~");
+                groupChatFX.GuserSet.addAll(Arrays.asList(userStringList));
+                groupChatFX.setGusernameLl(Integer.toString(userStringList.length));
+                groupChatFX.onlineUserInGroupList = FXCollections.observableArrayList(Arrays.asList(userStringList));
+                groupChatFX.GchatList.setItems(groupChatFX.onlineUserInGroupList);
+
+//                this.group_gcontroller_map.put(s.split(":")[0],groupChatFX);
+//                moos.writeObject(new Message(System.currentTimeMillis(),s.split(":")[0],"Server","group left lv",MsgType.G_LEFT_LV));
+//                moos.flush();
                 groupStage.setTitle(s2);
                 groupChatFX.setGroupname(s, this.moos);
-                groupStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
-                    @Override
-                    public void handle(WindowEvent windowEvent) {
-                        //发送给server信息，将该用户从group中踢出去
-
+                groupStage.setOnCloseRequest(windowEvent -> {
+                    //发送给server信息，将该用户从group中踢出去,sentby是同时包含了group的名字和username
+                    try {
+                        moos.writeObject(new Message(System.currentTimeMillis(), s, "Server", "exit the group", MsgType.EXIT_FROM_GROUP));
+                        moos.flush();
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
                 });
                 groupStage.show();
+                System.out.println(client_gcontroller_map);
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
         });
+    }
+
+    public void deleteChatOb(String str, String string) {
+        client_gcontroller_map.get(str).GsetLeftLV(string);
     }
 
     //返回值：第一个是Group的名字，后面是他所有的用户
@@ -273,18 +307,6 @@ public class Controller implements Initializable {
         return stringBuilder.append(username).toString();
     }
 
-//    //该方法将被选中的所有用户编码成在server端被解码的data
-//    private String createGpc(List<String> strings, String sss) {
-//        StringBuilder stringBuilder = new StringBuilder();
-//        for (String s : strings) {
-//            stringBuilder.append(s);
-//            stringBuilder.append("~");
-//        }
-//        stringBuilder.append(username);
-//        stringBuilder.append("~");
-//        stringBuilder.append(sss);
-//        return stringBuilder.toString();
-//    }
 
     /**
      * Sends the message to the <b>currently selected</b> chat.
@@ -358,7 +380,29 @@ public class Controller implements Initializable {
         }
     }
 
-    public void addEmoji(){
+    public void ntAllowLoginFeedBk() {
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("only 2 people");
+            alert.setHeaderText("Invalid message");
+            alert.setContentText("You entered an invalid username\nplease enter again later");
+            alert.showAndWait();
+            System.exit(0);
+        });
+    }
+
+    public void r_fail() {
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("repetitive username");
+            alert.setHeaderText("repetitive username");
+            alert.setContentText("repetitive username : try another username!");
+            alert.showAndWait();
+            System.exit(0);
+        });
+    }
+
+    public void addEmoji() {
         VBox vbox = new VBox(); // 创建一个垂直箱子
         HBox hbox = new HBox(); // 创建一个水平箱子
         RadioButton rb1 = new RadioButton("笑"); // 创建一个单选按钮
@@ -378,7 +422,7 @@ public class Controller implements Initializable {
             @Override
             public void changed(ObservableValue<? extends Toggle> arg0, Toggle old_toggle, Toggle new_toggle) {
                 // 在标签上显示当前选中的单选按钮文本
-                label.setText("您点了" + ((RadioButton)new_toggle).getText());
+                label.setText("您点了" + ((RadioButton) new_toggle).getText());
             }
         });
 
@@ -442,11 +486,11 @@ public class Controller implements Initializable {
     }
 
 
-    public void Pop_window(String s){
-        Platform.runLater(()->{
+    public void Pop_window(String s) {
+        Platform.runLater(() -> {
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-            alert.setTitle("Someone quit: "+ s);
-            alert.setHeaderText("Do you wanna keep the chat stage with "+s);
+            alert.setTitle("Someone quit: " + s);
+            alert.setHeaderText("Do you wanna keep the chat stage with " + s);
             alert.setContentText("Choose your option");
 
             ButtonType buttonTypeOne = new ButtonType("Yes");
@@ -456,19 +500,51 @@ public class Controller implements Initializable {
             alert.getButtonTypes().setAll(buttonTypeOne, buttonTypeTwo, buttonTypeCancel);
 
             Optional<ButtonType> result = alert.showAndWait();
-            if (result.get() == buttonTypeOne){
+            if (result.get() == buttonTypeOne) {
                 alert.close();
             } else if (result.get() == buttonTypeTwo) {
                 // ... user chose "Two"
                 //发送消息告诉我不要了
                 try {
-                    moos.writeObject(new Message(System.currentTimeMillis(), username,"Server","no keep",MsgType.EXIT_NO_KEEP));
+                    moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", "no keep", MsgType.EXIT_NO_KEEP));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             } else {
                 alert.close();
             }
+        });
+
+    }
+
+    public void RLStageOperate() {
+        Platform.runLater(() -> {
+            Stage stage = new Stage();
+            VBox vbox = new VBox(); // 创建一个垂直箱子
+            HBox hbox = new HBox(); // 创建一个水平箱子
+            Button rb1 = new Button("Register"); // 创建一个单选按钮
+            rb1.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent actionEvent) {
+                    registerOr = "register";
+                    stage.close();
+                }
+            });
+//        rb1.setSelected(true); // 设置按钮是否选中
+            Button rb2 = new Button("Login"); // 创建一个单选按钮
+            rb2.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent actionEvent) {
+                    registerOr = "login";
+                    stage.close();
+                }
+            });
+            hbox.getChildren().addAll(rb1, rb2); // 把三个单选按钮一起加到水平箱子上
+            ToggleGroup group = new ToggleGroup(); // 创建一个按钮小组
+            Label label = new Label("第一次进入请选择“Register”"); // 创建一个标签
+            label.setWrapText(true); // 设置标签文本是否支持自动换行
+            vbox.getChildren().addAll(label, hbox); // 把水平箱子和标签一起加到垂直箱子上
+            stage.setScene(new Scene(vbox));
         });
 
     }
