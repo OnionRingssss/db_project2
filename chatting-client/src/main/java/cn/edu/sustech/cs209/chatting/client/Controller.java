@@ -18,12 +18,14 @@ import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 
 import javax.swing.*;
 import java.io.*;
 import java.net.URL;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -78,19 +80,11 @@ public class Controller implements Initializable {
         dialog1.setContentText("Username:");
         Optional<String> input1 = dialog1.showAndWait();
 
-//        Dialog<String> dialog2 = new TextInputDialog();
-//        dialog2.setTitle("Login-password");
-//        dialog2.setHeaderText(null);
-//        dialog2.setContentText("Password:");
-//        Optional<String> input2 = dialog2.showAndWait();
-
-
         if (input1.isPresent() && !input1.get().isEmpty()) {
             /*
                TODO: Check if there is a user with the same name among the currently logged-in users,
                      if so, ask the user to change the username
              */
-            boolean conti = true;
             RLStageOperate();
             username = input1.get();
 //            password = input2.get();
@@ -103,7 +97,7 @@ public class Controller implements Initializable {
                 Alert alert1 = new Alert(Alert.AlertType.INFORMATION);
                 alert1.setTitle("Information Dialog");
                 alert1.setHeaderText(null);
-                alert1.setContentText("请先点击一位朋友表示您已经准备好进入聊天状态，可以接受他人的当前及后台聊天信息\n若不确认，默认进入勿扰状态，不会收到他人的后台消息");
+                alert1.setContentText("请先点击一位朋友表示您已经准备好进入聊天状态，可以接受他人的当前及后台聊天信息");
                 alert1.showAndWait();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -137,22 +131,30 @@ public class Controller implements Initializable {
             fileBtn.setOnAction(actionEvent -> {
                 //将文件转换成byte[]再转换成String
                 try {
-                    JFileChooser jf = new JFileChooser(beginPath);
-                    jf.setFileSelectionMode(JFileChooser.FILES_ONLY);//只选择文件
-                    jf.showOpenDialog(null);
-                    File selectedFile = jf.getSelectedFile();
+                    FileChooser jf = new FileChooser();
+
+                    File selectedFile = jf.showOpenDialog(null);
+
                     String fileName = selectedFile.getName();//获得文件名
-                    FileInputStream fileInputStream = new FileInputStream(selectedFile);
-                    byte[] fileInByte = new byte[(int) selectedFile.length()];
-                    fileInputStream.read(fileInByte);
-                    fileInputStream.close();
-                    StringBuilder sb = new StringBuilder();
-                    sb.append(fileName).append("---divide---");
-                    for (byte b : fileInByte) {
-                        sb.append(b);
-                    }
+//                    FileInputStream fileInputStream = new FileInputStream(selectedFile);
+//                    byte[] fileInByte = new byte[(int) selectedFile.length()];
+//                    System.out.println("selectedfile length :"+selectedFile.length());
+//                    fileInputStream.read(fileInByte);
+//                    System.out.println("file in bytes"+ Arrays.toString(fileInByte));
+//                    fileInputStream.close();
+                    byte[]fileInByte = file2Byte(selectedFile);
+//                    StringBuilder sb = new StringBuilder();
+////                    sb.append(fileName).append("---divide---");
+//                    for (byte b : fileInByte) {
+//                        sb.append(b);
+//                    }
+                    String sb = new String(fileInByte);
+                    System.out.println(sb);
                     //发送给客户端
-                    moos.writeObject(new Message(System.currentTimeMillis(), username, talkTo, sb.toString(), MsgType.FILE));
+                    Message m  = new Message(System.currentTimeMillis(), username, talkTo, sb, MsgType.FILE);
+                    m.content = Files.readAllBytes(selectedFile.toPath());
+                    moos.writeObject(m);
+                    System.out.println("sb: "+ sb);
                     moos.flush();
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -181,6 +183,41 @@ public class Controller implements Initializable {
         chatContentList.setCellFactory(new MessageCellFactory());
         chatContentList.setItems(mesObservableList);
     }
+    public static byte[] file2Byte(File file){
+        ByteArrayOutputStream bos=null;
+        BufferedInputStream in=null;
+        try{
+            bos=new ByteArrayOutputStream((int)file.length());
+            in=new BufferedInputStream(new FileInputStream(file));
+            int buf_size=1024;
+            byte[] buffer=new byte[buf_size];
+            int len=0;
+            while(-1 != (len=in.read(buffer,0,buf_size))){
+                bos.write(buffer,0,len);
+            }
+            return bos.toByteArray();
+        }
+        catch(Exception e){
+            System.out.println(e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+        finally{
+            try{
+                if(in!=null){
+                    in.close();
+                }
+                if(bos!=null){
+                    bos.close();
+                }
+            }
+            catch(Exception e){
+                System.out.println(e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
+
 
     @FXML
     public void createPrivateChat() {
@@ -371,7 +408,7 @@ public class Controller implements Initializable {
 
     }
 
-    public void receiveFile(String sender, String fileName, byte[] bytes) {
+    public void receiveFile(String sender, byte[] bytes,Message message) {
         Platform.runLater(() -> {
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
             alert.setTitle("Confirmation Dialog");
@@ -380,12 +417,23 @@ public class Controller implements Initializable {
 
             Optional<ButtonType> result = alert.showAndWait();
             if (result.get() == ButtonType.OK) {
-                // ... user chose OK
-                JFileChooser jFileChooser = new JFileChooser(outPath);
-                jFileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-                jFileChooser.showOpenDialog(null);
-                String selectedPath = jFileChooser.getSelectedFile().getAbsolutePath();
-                bytesToFile(bytes, selectedPath, fileName);
+//                // ... user chose OK
+//                JFileChooser jFileChooser = new JFileChooser(outPath);
+//                jFileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+//                jFileChooser.showOpenDialog(null);
+//                String selectedPath = jFileChooser.getSelectedFile().getAbsolutePath();
+////                bytesToFile(bytes, selectedPath);
+//
+                TextInputDialog dialog = new TextInputDialog("woohuu!");
+                dialog.setTitle("Text Input Dialog");
+                dialog.setContentText("Please set file name: ");
+
+// Traditional way to get the response value.
+                Optional<String> result1 = dialog.showAndWait();
+                String fName = "";
+                if(result1.isPresent())fName = result1.get();
+
+                byte2File(fName,message);
             } else {
                 System.out.println(userSet+" refuse the file sent by "+sender);
             }
@@ -393,8 +441,40 @@ public class Controller implements Initializable {
         });
 
     }
+    public static void byte2File(String fileName,Message message){
+        BufferedOutputStream bos=null;
+        FileOutputStream fos=null;
+        try{
+//            File dir=new File(filePath);
+//            if(!dir.exists() && !dir.isDirectory()){//判断文件目录是否存在
+//                dir.mkdirs();
+//            }
 
-    private File bytesToFile(byte[] bytes, String outPath, String fileName) {
+            fos=new FileOutputStream("C:\\Users\\y1211\\Desktop\\java2_assignment\\CS029A_assignment2\\fileReceiver\\"+fileName);
+            bos=new BufferedOutputStream(fos);
+            bos.write(message.content,0,message.content.length);
+        }
+        catch(Exception e){
+            System.out.println(e.getMessage());
+            e.printStackTrace();
+        }
+        finally{
+            try{
+                if(bos != null){
+                    bos.close();
+                }
+                if(fos != null){
+                    fos.close();
+                }
+            }
+            catch(Exception e){
+                System.out.println(e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private File bytesToFile(byte[] bytes, String outPath) {
         BufferedOutputStream bos = null;
         FileOutputStream fos = null;
         File file = null;
@@ -403,10 +483,27 @@ public class Controller implements Initializable {
             if (!dir.exists() && dir.isDirectory()) { //判断文件目录是否存在
                 dir.mkdirs();
             }
-            file = new File(outPath + File.separator + fileName);
-            fos = new FileOutputStream(file);
-            bos = new BufferedOutputStream(fos);
-            bos.write(bytes);
+
+            String fileName;
+            TextInputDialog dialog = new TextInputDialog("woohuu!");
+            dialog.setTitle("Text Input Dialog");
+            dialog.setContentText("Please set file name: ");
+
+// Traditional way to get the response value.
+            Optional<String> result = dialog.showAndWait();
+            if (result.isPresent()) {
+                fileName = result.get();
+                file = new File(outPath + File.separator + fileName);
+                fos = new FileOutputStream(file);
+//                bos = new BufferedOutputStream(fos);
+                fos.write(bytes,0,bytes.length);
+                fos.flush();
+
+            }else {
+                System.out.println("you stopped the file transfer.");
+            }
+
+
         } catch (Exception e) {
             e.printStackTrace();
         } finally {

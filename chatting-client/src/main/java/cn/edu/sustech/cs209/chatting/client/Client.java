@@ -158,11 +158,11 @@ class ClientReader implements Runnable {
                         break;
                     case FILE:
                         //将byte[]转化回文件
-                        String fileName = message.getData().split("---divide---")[0];
-                        String fileString = message.getData().split("---divide---")[1];
+//                        String fileName = message.getData().split("---divide---")[0];
+                        String fileString = message.getData();
                         byte[] bytes = fileString.getBytes();
                         //让controller弹出一个弹窗，确定是否接受
-                        controller.receiveFile(message.getSentBy(),fileName,bytes);
+                        controller.receiveFile(message.getSentBy(),bytes,message);
                         System.out.println("客户端收到file消息，给出弹窗");
                         break;
 

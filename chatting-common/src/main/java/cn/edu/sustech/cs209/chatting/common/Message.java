@@ -14,6 +14,8 @@ public class Message implements Serializable {
 
     private MsgType type;
 
+    public byte[] content = null;
+
     public Message(Long timestamp, String sentBy, String sendTo, String data, MsgType type) {
 
         this.timestamp = timestamp;
