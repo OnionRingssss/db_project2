@@ -1,60 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ListView?>
-<?import javafx.scene.control.Menu?>
-<?import javafx.scene.control.MenuBar?>
-<?import javafx.scene.control.MenuItem?>
-<?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.paint.Color?>
-<?import javafx.scene.text.Font?>
 
-<VBox prefHeight="600.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="cn.edu.sustech.cs209.chatting.client.Controller">
-    <MenuBar VBox.vgrow="NEVER">
-        <Menu mnemonicParsing="false" text="Chat">
-            <MenuItem mnemonicParsing="false" onAction="#createPrivateChat" text="New Private Chat" />
-            <MenuItem mnemonicParsing="false" onAction="#createGroupChat" text="New Group Chat" />
-        </Menu>
-    </MenuBar>
-   <HBox prefHeight="33.0" prefWidth="900.0">
-      <children>
-         <Pane prefHeight="33.0" prefWidth="715.0" />
-         <Label fx:id="talkWith" prefHeight="33.0" prefWidth="195.0" text="Label" />
-      </children>
-   </HBox>
-    <SplitPane dividerPositions="0.25" focusTraversable="true" VBox.vgrow="ALWAYS">
-        <ListView fx:id="chatList" prefHeight="466.0" prefWidth="221.0" />
-        <SplitPane dividerPositions="0.85" orientation="VERTICAL" prefHeight="200.0" prefWidth="160.0">
-            <ListView fx:id="chatContentList" prefHeight="200.0" prefWidth="200.0" />
-            <HBox prefHeight="100.0" prefWidth="200.0">
-                <TextArea fx:id="inputArea" prefHeight="74.0" prefWidth="491.0" HBox.hgrow="ALWAYS" />
-            <Button fx:id="emojiBtn" mnemonicParsing="false" prefHeight="74.0" prefWidth="54.0" text="emoji" />
-                <Button maxHeight="1.7976931348623157E308" mnemonicParsing="false" onAction="#doSendMessage" prefHeight="74.0" prefWidth="58.0" text="Send" HBox.hgrow="ALWAYS" />
-            </HBox>
-        </SplitPane>
-    </SplitPane>
-    <HBox id="HBox" alignment="CENTER_LEFT" spacing="5.0" VBox.vgrow="NEVER">
-        <padding>
-            <Insets bottom="3.0" left="3.0" right="3.0" top="3.0" />
-        </padding>
-        <Label fx:id="currentUsername" maxHeight="1.7976931348623157E308" text="Current User: USERNAME" HBox.hgrow="ALWAYS">
-            <font>
-                <Font size="11.0" fx:id="x3" />
-            </font>
-            <textFill>
-                <Color red="0.625" green="0.625" blue="0.625" fx:id="x4" />
-            </textFill>
-        </Label>
-        <Pane HBox.hgrow="ALWAYS">
+<VBox prefHeight="621.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="cn.edu.sustech.cs209.chatting.client.Controller">
+   <children>
+      <HBox prefHeight="625.0" prefWidth="900.0">
          <children>
-            <Button fx:id="fileBtn" layoutX="591.0" layoutY="1.0" mnemonicParsing="false" prefHeight="33.0" prefWidth="110.0" text="Send Files" />
-         </children></Pane>
-        <Label fx:id="currentOnlineCnt" font="$x3" text="Online: 1" textFill="$x4" HBox.hgrow="NEVER" />
-    </HBox>
+            <VBox prefHeight="621.0" prefWidth="144.0">
+               <children>
+                  <Label prefHeight="51.0" prefWidth="134.0" text="控制台" />
+                  <Button fx:id="dianZan" mnemonicParsing="false" onAction="#click_dianZan" prefHeight="24.0" prefWidth="60.0" text="点赞" />
+                  <Button mnemonicParsing="false" onAction="#click_shouCang" prefHeight="23.0" prefWidth="62.0" text="收藏" />
+                  <Button mnemonicParsing="false" onAction="#click_zhuanFa" prefHeight="23.0" prefWidth="63.0" text="转发" />
+                  <Button mnemonicParsing="false" onAction="#click_chaKanDianZan" text="查看点赞" />
+                  <Button mnemonicParsing="false" onAction="#click_chaKanShouCang" text="查看收藏" />
+                  <Button mnemonicParsing="false" onAction="#click_chaKanZhuanFa" text="查看转发" />
+                  <Button mnemonicParsing="false" onAction="#click_guanZhu" text="关注" />
+                  <Button mnemonicParsing="false" onAction="#click_quXiaoGuanZhu" text="取消关注" />
+                  <Button mnemonicParsing="false" onAction="#click_chaKanGuanZhu" text="查看关注" />
+                  <Button mnemonicParsing="false" onAction="#click_faBuTieZi" text="发布帖子" />
+                  <Button mnemonicParsing="false" onAction="#click_huiFuTieZi" text="回复帖子" />
+                  <Button mnemonicParsing="false" onAction="#click_huiFuHuiFu" text="回复回复" />
+                  <Button mnemonicParsing="false" onAction="#click_chaKanOthersPost" text="查看他人帖子" />
+                  <Button mnemonicParsing="false" onAction="#click_chaKanFaBu" text="查看自己帖子" />
+                  <Button mnemonicParsing="false" onAction="#click_chaKanHuiFu" text="查看回复" />
+                  <Button mnemonicParsing="false" onAction="#click_chaKanErJiHuiFu" text="查看二级回复" />
+                  <Button mnemonicParsing="false" onAction="#click_multiSearch" text="多参数搜索" />
+                  <Button mnemonicParsing="false" onAction="#click_pingBi" text="屏蔽" />
+               </children>
+            </VBox>
+            <VBox prefHeight="621.0" prefWidth="756.0">
+               <children>
+                  <TextArea fx:id="hotSearchArea" prefHeight="621.0" prefWidth="360.0" />
+               </children>
+            </VBox>
+         </children>
+      </HBox>
+   </children>
 </VBox>

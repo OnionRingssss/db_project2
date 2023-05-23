@@ -28,14 +28,14 @@ public class Main extends Application {
         stage.setScene(new Scene(fxmlLoader.load()));
         Controller ctlr = fxmlLoader.getController();
         stage.setTitle("Chatting Client");
-        //设置关闭事件
-        stage.setOnCloseRequest(windowEvent -> {
-            try {
-                ctlr.moos.writeObject(new Message(System.currentTimeMillis(),ctlr.username,"Server","exit", MsgType.EXIT));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
+//        //设置关闭事件
+//        stage.setOnCloseRequest(windowEvent -> {
+//            try {
+//                ctlr.moos.writeObject(new Message(System.currentTimeMillis(),ctlr.username,"Server","exit", MsgType.EXIT));
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        });
         stage.show();
 
 

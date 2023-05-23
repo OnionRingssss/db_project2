@@ -12,6 +12,11 @@
     <artifactId>chatting-server</artifactId>
 
     <dependencies>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.3.8</version>
+        </dependency>
 
         <dependency>
             <groupId>cn.edu.sustech.cs209.chatting</groupId>

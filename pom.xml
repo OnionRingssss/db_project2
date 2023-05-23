@@ -27,6 +27,11 @@
                 <artifactId>chatting-common</artifactId>
                 <version>dev-SNAPSHOT</version>
             </dependency>
+            <dependency>
+                <groupId>org.postgresql</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>42.3.8</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

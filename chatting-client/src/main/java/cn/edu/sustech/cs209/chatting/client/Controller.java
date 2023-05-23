@@ -2,735 +2,738 @@ package cn.edu.sustech.cs209.chatting.client;
 
 import cn.edu.sustech.cs209.chatting.common.*;
 import javafx.application.Platform;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.input.MouseEvent;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
-import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 
 import javax.swing.*;
+import java.awt.*;
 import java.io.*;
 import java.net.URL;
-import java.nio.file.Files;
+import java.sql.Timestamp;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Controller implements Initializable {
 
-  public OOS_OIS.MyObjectOutputStream moos;
-  public Map<String, GroupChatFX> group_gcontroller_map = new HashMap<>();
-  public Map<String, GroupChatFX> client_gcontroller_map = new HashMap<>();
-  public Set<String> userSet = new HashSet<>();
-  ObservableList<String> stringObservableList;
-  ObservableList<Message> mesObservableList = FXCollections.observableArrayList();
-
-  @FXML
-  private TextArea inputArea;
-
-  @FXML
-  ListView<Message> chatContentList;
+    public OOS_OIS.MyObjectOutputStream moos;
+    public Map<String, GroupChatFX> group_gcontroller_map = new HashMap<>();
+    public Map<String, GroupChatFX> client_gcontroller_map = new HashMap<>();
+    public Set<String> userSet = new HashSet<>();
 
 
-  String username;
-  String password;
+    String username;//author_id
+    String user_author_name;//author_name
+    String user_author_phone;//author_phone
+    Timestamp user_author_time;//author_time
 
-  @FXML
-  private Label currentUsername;
-  @FXML
-  private Label talkWith;
-  private String talkTo = null;
-
-  @FXML
-  public ListView<String> chatList;
-
-  @FXML
-  public Label currentOnlineCnt;
-
-  @FXML
-  public Button emojiBtn;
-
-  @FXML
-  public Button fileBtn;
-
-  private static final String beginPath = "C:\\Users\\y1211\\Desktop\\java2_assignment\\CS029A_assignment2\\fileSender";
-  private static final String outPath = "C:\\Users\\y1211\\Desktop\\java2_assignment\\CS029A_assignment2\\fileReceiver";
-
-  String registerOr;
+    /**
+     * 在javafx中的组件
+     */
+    public javafx.scene.control.TextArea hotSearchArea;
 
 
-  @Override
-  public void initialize(URL url, ResourceBundle resourceBundle) {
-    Dialog<String> dialog1 = new TextInputDialog();
-    dialog1.setTitle("Login-username");
-    dialog1.setHeaderText(null);
-    dialog1.setContentText("Username:");
-    Optional<String> input1 = dialog1.showAndWait();
+    @Override
+    public void initialize(URL url, ResourceBundle resourceBundle) {
+//    Dialog<String> dialog1 = new TextInputDialog();
+//    dialog1.setTitle("Login-author_id");
+//    dialog1.setHeaderText(null);
+//    dialog1.setContentText("Author_id:");
+//    Optional<String> input1 = dialog1.showAndWait();
 
-    if (input1.isPresent() && !input1.get().isEmpty()) {
-            /*
-               TODO: Check if there is a user with the same name among the currently logged-in users,
-                     if so, ask the user to change the username
-             */
-      RLStageOperate();
-      username = input1.get();
-//            password = input2.get();
-      setCurrentUsername(username);
-      try {
-        //创建一个client，以及其中的读写线程
-        Client client = new Client(username, this);
-        moos = client.getOs();
-        //给提示：
-        Alert alert1 = new Alert(Alert.AlertType.INFORMATION);
-        alert1.setTitle("Information Dialog");
-        alert1.setHeaderText(null);
-        alert1.setContentText("请先点击一位朋友表示您已经准备好进入聊天状态，可以接受他人的当前及后台聊天信息");
-        alert1.showAndWait();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-      System.out.println("usm=:" + Users.user_socket_map);
+//    Dialog<Pair<String,String>> dialog2 = new Dialog<>();
+//    dialog2.setTitle("Login-author_name and author_phone");
+//    dialog2.setHeaderText(null);
+//    dialog2.setContentText();
+
+        /**
+         * create a popup window, get id,name,phone
+         */
+        // Create the custom dialog.
+        Dialog<Map<String, String>> dialog = new Dialog<>();
+        dialog.setTitle("Login Dialog");
+        dialog.setHeaderText("Login");
+
+// Set the button types.
+        ButtonType registerButtonType = new ButtonType("Register", ButtonBar.ButtonData.OK_DONE);
+        ButtonType loginButtonType = new ButtonType("Login", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(registerButtonType, loginButtonType, ButtonType.CANCEL);
+
+// Create the username and password labels and fields.
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField user_author_id_Field = new TextField();
+        user_author_id_Field.setPromptText("author_id");
+        TextField user_author_name_Field = new TextField();
+        user_author_name_Field.setPromptText("author_name");
+        TextField user_author_phone_Field = new TextField();
+        user_author_phone_Field.setPromptText("author_phone");
+
+        grid.add(new Label("author_id:"), 0, 0);
+        grid.add(user_author_id_Field, 1, 0);
+        grid.add(new Label("author_name:"), 0, 1);
+        grid.add(user_author_name_Field, 1, 1);
+        grid.add(new Label("author:phone:"), 0, 2);
+        grid.add(user_author_phone_Field, 1, 2);
+
+// Enable/Disable login button depending on whether a username was entered.
+        Node registerbutton = dialog.getDialogPane().lookupButton(registerButtonType);
+        Node loginbutton = dialog.getDialogPane().lookupButton(loginButtonType);
+        registerbutton.setDisable(true);
+        loginbutton.setDisable(true);
+
+// Do some validation (using the Java 8 lambda syntax).
+        user_author_id_Field.textProperty().addListener((observable, oldValue, newValue) -> {
+            loginbutton.setDisable(newValue.trim().isEmpty());
+            registerbutton.setDisable(newValue.trim().isEmpty());
+        });
+
+        dialog.getDialogPane().setContent(grid);
+
+// Request focus on the username field by default.
+        Platform.runLater(() -> user_author_id_Field.requestFocus());
+
+// Convert the result to a username-password-pair when the login button is clicked.
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == loginButtonType) {
+                Map<String, String> result = new HashMap<>();
+                result.put("id", user_author_id_Field.getText());
+                result.put("name", user_author_name_Field.getText());
+                result.put("phone", user_author_phone_Field.getText());
+                result.put("type", "login");
+                return result;
+            } else if (dialogButton == registerButtonType) {
+                Map<String, String> result = new HashMap<>();
+                result.put("id", user_author_id_Field.getText());
+                result.put("name", user_author_name_Field.getText());
+                result.put("phone", user_author_phone_Field.getText());
+                result.put("type", "register");
+                return result;
+            }
+            return null;
+        });
+
+        Optional<Map<String, String>> result = dialog.showAndWait();
+        result.ifPresent(value -> {
+            System.out.println("id: " + value.get("id"));
+            System.out.println("name: " + value.get("name"));
+            System.out.println("phone: " + value.get("phone"));
+            System.out.println("type: " + value.get("type"));
+        });
+
+//    if (input1.isPresent() && !input1.get().isEmpty()) {
+        if (result.isPresent() && !result.get().isEmpty()) {
+            username = result.get().get("id");
+            user_author_name = result.get().get("name");
+            user_author_phone = result.get().get("phone");
+            user_author_time = new Timestamp(System.currentTimeMillis());
+            try {
+                //创建一个client，以及其中的读写线程
+                Client client = new Client(username, user_author_name, user_author_phone, user_author_time,
+                        result.get().get("type"), this);
+                moos = client.getOs();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        } else {
+            System.out.println("Empty username of password!");
+            Platform.exit();
+        }
+
+    }
 
 
-      emojiBtn.setOnAction(actionEvent -> {
-        //弹出一个选择弹窗，选择想要的表情
-        List<String> choices = new ArrayList<>();
-        choices.add("\uD83D\uDE04");
-        choices.add("\uD83D\uDE38");
-        choices.add("\uD83D\uDE1F");
+    /**
+     * 组件的相应方法
+     */
 
-        ChoiceDialog<String> dialog = new ChoiceDialog<>("\uD83D\uDE04", choices);
-        dialog.setTitle("Choice Dialog");
-        dialog.setHeaderText("Look, a Choice Dialog");
-        dialog.setContentText("Choose your emoji: ");
+    //这个方法创造一个可以输入的框，返回输入的内容,如果没输入就是null
+    public String textInDialog(String notice) {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle(notice);
+        dialog.setHeaderText("Please input id: ");
+        dialog.setContentText(notice);
 
+        // Traditional way to get the response value.
         Optional<String> result = dialog.showAndWait();
-        //添加到输入中去
-        try {
-          System.out.println(result.get());
-          inputArea.setText(inputArea.getText() + result.get());
-        } catch (NoSuchElementException e) {
-          System.out.println("没有选择emoji,直接关掉选择器了");
-        }
-      });
-
-      //设置发送文件按钮的监听
-      fileBtn.setOnAction(actionEvent -> {
-        //将文件转换成byte[]再转换成String
-        try {
-          FileChooser jf = new FileChooser();
-
-          File selectedFile = jf.showOpenDialog(null);
-
-          String fileName = selectedFile.getName();//获得文件名
-//                    FileInputStream fileInputStream = new FileInputStream(selectedFile);
-//                    byte[] fileInByte = new byte[(int) selectedFile.length()];
-//                    System.out.println("selectedfile length :"+selectedFile.length());
-//                    fileInputStream.read(fileInByte);
-//                    System.out.println("file in bytes"+ Arrays.toString(fileInByte));
-//                    fileInputStream.close();
-          byte[] fileInByte = file2Byte(selectedFile);
-//                    StringBuilder sb = new StringBuilder();
-////                    sb.append(fileName).append("---divide---");
-//                    for (byte b : fileInByte) {
-//                        sb.append(b);
-//                    }
-          String sb = new String(fileInByte);
-          System.out.println(sb);
-          //发送给客户端
-          Message m = new Message(System.currentTimeMillis(), username, talkTo, sb, MsgType.FILE);
-          m.content = Files.readAllBytes(selectedFile.toPath());
-          moos.writeObject(m);
-          System.out.println("sb: " + sb);
-          moos.flush();
-        } catch (IOException e) {
-          e.printStackTrace();
-        } catch (NullPointerException e) {
-          System.out.println("no file");
-        }
-
-
-      });
-    } else {
-      System.out.println("Empty username of password!");
-      Platform.exit();
-    }
-    String displayTalkTo = "talking to: " + talkTo;
-    talkWith.setText(displayTalkTo);
-
-    chatList.setOnMouseClicked(mouseEvent -> {
-      if (mouseEvent.getClickCount() == 2) {
-        System.out.println(chatList.getSelectionModel().getSelectedItem().getClass());
-        System.out.println(chatList.getItems().getClass());
-        talkTo = chatList.getSelectionModel().getSelectedItem();
-        privateChatHelper();
-      }
-    });
-
-    chatContentList.setCellFactory(new MessageCellFactory());
-    chatContentList.setItems(mesObservableList);
-  }
-
-  public static byte[] file2Byte(File file) {
-    ByteArrayOutputStream bos = null;
-    BufferedInputStream in = null;
-    try {
-      bos = new ByteArrayOutputStream((int) file.length());
-      in = new BufferedInputStream(new FileInputStream(file));
-      int buf_size = 1024;
-      byte[] buffer = new byte[buf_size];
-      int len = 0;
-      while (-1 != (len = in.read(buffer, 0, buf_size))) {
-        bos.write(buffer, 0, len);
-      }
-      return bos.toByteArray();
-    } catch (Exception e) {
-      System.out.println(e.getMessage());
-      e.printStackTrace();
-      return null;
-    } finally {
-      try {
-        if (in != null) {
-          in.close();
-        }
-        if (bos != null) {
-          bos.close();
-        }
-      } catch (Exception e) {
-        System.out.println(e.getMessage());
-        e.printStackTrace();
-      }
-    }
-  }
-
-
-  @FXML
-  public void createPrivateChat() {
-
-    AtomicReference<String> user = new AtomicReference<>();
-
-    //该stage为弹出供我们选择私聊对象的stage
-    Stage stage = new Stage();
-    ComboBox<String> userSel = new ComboBox<>();
-
-    // FIXME: get the user list from server, the current user's name should be filtered out
-    //将userset写入usersel
-    for (String s : userSet) {
-      if (!s.equals(username)) userSel.getItems().add(s);
+        return result.orElse(null);
     }
 
-    Button okBtn = new Button("OK");
-    okBtn.setOnAction(e -> {
-      user.set(userSel.getSelectionModel().getSelectedItem());
-      //将选中的聊天对象设置为 talkto
-      talkTo = userSel.getSelectionModel().getSelectedItem();
-      privateChatHelper();
-      stage.close();
-    });
+    @FXML //点赞
+    public void click_dianZan() throws IOException {
+        String str = textInDialog("输入你想点赞的帖子id：");
+        moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", str, MsgType.dian_zan));
+        moos.flush();
+    }
 
-    HBox box = new HBox(10);
-    box.setAlignment(Pos.CENTER);
-    box.setPadding(new Insets(20, 20, 20, 20));
-    box.getChildren().addAll(userSel, okBtn);
-    stage.setScene(new Scene(box));
-    stage.showAndWait();
+    @FXML //收藏
+    public void click_shouCang() throws IOException {
+        String str = textInDialog("输入你想收藏的帖子id： ");
+        moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", str, MsgType.shou_cang));
+        moos.flush();
+    }
 
-//        // TODO: if the current user already chatted with the selected user, just open the chat with that user
-//        if (user.get().equals(talkTo)) {
-//
+    @FXML //转发
+    public void click_zhuanFa() throws IOException {
+        String str = textInDialog("输入你想转发的帖子id： ");
+        moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", str, MsgType.zhuan_fa));
+        moos.flush();
+    }
+
+    @FXML //查看点赞
+    public void click_chaKanDianZan() throws IOException {
+        moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", username, MsgType.cha_kan_dian_zan));
+        moos.flush();
+    }
+
+    @FXML //查看收藏
+    public void click_chaKanShouCang() throws IOException {
+        moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", username, MsgType.cha_kan_shou_cang));
+        moos.flush();
+    }
+
+    @FXML //查看转发
+    public void click_chaKanZhuanFa() throws IOException {
+        moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", username, MsgType.cha_kan_zhuan_fa));
+        moos.flush();
+    }
+
+    @FXML // 关注
+    public void click_guanZhu() throws IOException {
+        String str = textInDialog("输入你想关注的作者id： ");
+        moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", str, MsgType.guan_zhu));
+        moos.flush();
+    }
+
+    @FXML //取消关注
+    public void click_quXiaoGuanZhu() throws IOException {
+        String str = textInDialog("输入你想取消关注的作者id： ");
+        moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", str, MsgType.qu_xiao_guan_zhu));
+        moos.flush();
+    }
+
+    @FXML //查看关注
+    public void click_chaKanGuanZhu() throws IOException {
+        moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", username, MsgType.cha_kan_guan_zhu));
+        moos.flush();
+    }
+
+    @FXML //发布帖子
+    public void click_faBuTieZi() throws IOException {
+        String str = textInDialog("输入你想发布的帖子的标题（title）");
+        String anony = choiceAnonyDialog();
+        if (anony == null) {
+            pop_error("请再次尝试",false);
+        } else {
+            moos.writeObject(new Message(System.currentTimeMillis(), username, anony, str, MsgType.fa_bu_tie_zi));
+            moos.flush();
+        }
+    }
+
+
+    @FXML //回复帖子
+    public void click_huiFuTieZi() throws IOException {
+        String str = textInDialog("输入你想回复的帖子的id：");
+        //reply content
+        String content = null;
+        JTextArea contentArea = new JTextArea(10, 30);
+        JScrollPane contentPane = new JScrollPane(contentArea);
+        contentArea.setLineWrap(true);
+        contentArea.setWrapStyleWord(true);
+        int ContentResult = JOptionPane.showConfirmDialog(null, contentPane, "请输入content:", JOptionPane.OK_CANCEL_OPTION);
+        if (ContentResult == JOptionPane.OK_OPTION) {
+            content = contentArea.getText();
+        }
+        moos.writeObject(new Message(null, username, str, content, MsgType.hui_fu_tie_zi));
+        moos.flush();
+    }
+
+    @FXML //回复回复
+    public void click_huiFuHuiFu() throws IOException {
+        String str = textInDialog("输入你想回复的回复的id：");
+        //reply content
+        String content = null;
+        JTextArea contentArea = new JTextArea(10, 30);
+        JScrollPane contentPane = new JScrollPane(contentArea);
+        contentArea.setLineWrap(true);
+        contentArea.setWrapStyleWord(true);
+        int ContentResult = JOptionPane.showConfirmDialog(null, contentPane, "请输入content:", JOptionPane.OK_CANCEL_OPTION);
+        if (ContentResult == JOptionPane.OK_OPTION) {
+            content = contentArea.getText();
+        }
+        moos.writeObject(new Message(null, username, str, content, MsgType.hui_fu_hui_fu));
+        moos.flush();
+    }
+
+
+    @FXML//查看别人发布的帖子
+    public void click_chaKanOthersPost() throws IOException{
+        String str = textInDialog("输入你想查看到作者id：");
+        moos.writeObject(new Message(null,username,null,str,MsgType.cha_kan_ta_ren_fa_bu));
+        moos.flush();
+    }
+
+    @FXML //查看自己发布的帖子
+    public void click_chaKanFaBu() throws IOException {
+        moos.writeObject(new Message(null, username, null, null, MsgType.cha_kan_fa_bu));
+        moos.flush();
+    }
+
+    @FXML //查看自己回复的帖子
+    public void click_chaKanHuiFu() throws IOException {
+        moos.writeObject(new Message(null, username, null, null, MsgType.cha_kan_hui_fu));
+        moos.flush();
+    }
+
+    @FXML //查看自己的二级回复
+    public void click_chaKanErJiHuiFu() throws IOException {
+        moos.writeObject(new Message(null, username, null, null, MsgType.cha_kan_er_ji_hui_fu));
+        moos.flush();
+    }
+
+    @FXML //多参数搜索帖子
+    public void click_multiSearch() throws IOException {
+        String[] recorder = multiSearchInput();
+        //by: key~key  to:start time  data : end time
+        moos.writeObject(new Message(null, recorder[0], recorder[1], recorder[2], MsgType.multi_search));
+        moos.flush();
+    }
+
+    @FXML //屏蔽
+    public void click_pingBi() throws IOException{
+        String str = textInDialog("输入你想屏蔽的作者id：");
+        moos.writeObject(new Message(null,username,null,str,MsgType.ping_bi));
+        moos.flush();
+    }
+
+    private String[] multiSearchInput() {
+        String[] answer = new String[3];
+        answer[0] = createInputDialog("关键词搜索", "输入关键词，多关键词请用“~”隔开", "输入关键词");
+//        answer[1] = createInputDialog("类型搜索","输入类型，多类型搜索请用“~”隔开","输入类型");
+        answer[1] = createInputDialog("时间搜索", "输入起始时间", "输入起始时间");
+        answer[2] = createInputDialog("时间搜索", "输入终止时间", "输入终止时间");
+
+        //对每一种类型进行判断
+//        if(answer[1]!=null && !isPositiveIntegerArray(answer[1].split("~"))){
+//            pop_error("筛选的类型只能是正整数",false);
 //        }
-//        // TODO: otherwise, create a new chat item in the left panel, the title should be the selected user's name
-//        else {
-//        }
-  }
-
-  /**
-   * A new dialog should contain a multi-select list, showing all user's name.
-   * You can select several users that will be joined in the group chat, including yourself.
-   * <p>
-   * The naming rule for group chats is similar to WeChat:
-   * If there are > 3 users: display the first three usernames, sorted in lexicographic order, then use ellipsis with the number of users, for example:
-   * UserA, UserB, UserC... (10)
-   * If there are <= 3 users: do not display the ellipsis, for example:
-   * UserA, UserB (2)
-   */
-  @FXML
-  public void createGroupChat() {
-    if (userSet.size() >= 3) {
-      Stage GroupChatChooserStage = new Stage();
-      List<CheckBox> chosenUser = new ArrayList<>(); //被选中的user(CheckBox)
-      List<String> chosenUser_String = new ArrayList<>();//被选中的user(String)
-      Label label = new Label("choose some friend and begin your group chat! ");
-      VBox under_vbox = new VBox();
-      VBox upper_vbox = new VBox();
-      HBox hBox = new HBox();
-      Label label1 = new Label("set a name for your group: ");
-      TextField textField = new TextField();
-      hBox.getChildren().addAll(label1, textField);
-      //可选择的用户不包含当前用户，但是在创建完成群后要将当前用户加进去
-      for (String s : userSet) {
-        if (!s.equals(username)) {
-          chosenUser.add(new CheckBox(s));
-//                    chosenUser_String.add(s);
+        if (answer[1] != null && !isTimestamp(answer[1])) {
+            pop_error("起始时间格式错误", false);
         }
-      }
-      for (CheckBox checkBox : chosenUser) {
-        checkBox.selectedProperty().addListener((observableValue, aBoolean, t1) -> chosenUser_String.add(checkBox.getText()));
-      }
-      //确定创建群聊的button
-      Button okBtn = new Button("OK");
-      okBtn.setOnAction(e -> {
-
-//            //创建一个新的Gcontroller，并将他加入到所在controller的list里面
-//            createNewGcontroller(textField.getText()+":"+username,textField.getText()+":"+username);
-        //将这个新的Gcontroller加入到Users中,向server发送信息
-        try {
-          moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", group_create_helper(textField.getText(), chosenUser_String), MsgType.GROUP_CREATE));
-          moos.flush();
-        } catch (IOException ex) {
-          ex.printStackTrace();
+        if (answer[2] != null && !isTimestamp(answer[2])) {
+            pop_error("终止时间格式错误", false);
         }
-        System.out.println("创建信息从clinet发送到server");
 
-        GroupChatChooserStage.close();
-      });
-      upper_vbox.getChildren().addAll(chosenUser);
-      under_vbox.getChildren().addAll(hBox, label, upper_vbox, okBtn);
-      under_vbox.setAlignment(Pos.CENTER);
-      under_vbox.setPadding(new Insets(20, 20, 20, 20));
-      GroupChatChooserStage.setScene(new Scene(under_vbox));
-      GroupChatChooserStage.showAndWait();
-    } else {
-      Alert alert = new Alert(Alert.AlertType.WARNING);
-      alert.setTitle("only 2 people");
-      alert.setHeaderText("only 2 people!");
-      alert.setContentText("we cannot create a group with no more than 2 people");
-      alert.showAndWait();
+        return answer;
     }
-  }
 
-  public void createNewGcontroller(String s, String s2, String s3) {
+    public static boolean isPositiveIntegerArray(String[] arr) {
+        for (String s : arr) {
+            if (!s.matches("\\d+")) {
+                return false;
+            }
+        }
+        return true;
+    }
 
-    Platform.runLater(() -> {
-      Stage groupStage = new Stage();
-      FXMLLoader loader = new FXMLLoader(getClass().getResource("groupChatFX.fxml"));//链接fxml文件
-      try {
-        groupStage.setScene(new Scene(loader.load()));
-        GroupChatFX groupChatFX = loader.getController();
-        //更新一下该controller的表
-        this.client_gcontroller_map.put(s, groupChatFX);
-        this.group_gcontroller_map.put(s.split(":")[0], groupChatFX);
-        //让这个groupChatFX的userset完善
-        String[] userStringList = s3.split("~");
-        groupChatFX.GuserSet.addAll(Arrays.asList(userStringList));
-        groupChatFX.setGusernameLl(Integer.toString(userStringList.length));
-        groupChatFX.onlineUserInGroupList = FXCollections.observableArrayList(Arrays.asList(userStringList));
-        groupChatFX.GchatList.setItems(groupChatFX.onlineUserInGroupList);
+    public static boolean isTimestamp(String s) {
+        try {
+            Timestamp.valueOf(s);
+            return true;
+        } catch (Exception e) {
+            String regex = "^\\d{4}-\\d{2}-\\d{2}$";
+            Pattern pattern = Pattern.compile(regex);
+            Matcher matcher = pattern.matcher(s);
+            return matcher.matches();
+        }
+    }
+
+    private void pop_error(String s, boolean exit) {
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setHeaderText(null);
+            alert.setContentText(s);
+            alert.showAndWait();
+            if (exit) {
+                System.exit(0);
+            }
+        });
+
+    }
+
+    private String createInputDialog(String s1, String s2, String s3) {
+        TextInputDialog dialog = new TextInputDialog("输入null，表示对此不加限制");
+        dialog.setTitle(s1);
+        dialog.setHeaderText(s2);
+        dialog.setContentText(s3);
+
+// Traditional way to get the response value.
+        Optional<String> result = dialog.showAndWait();
+        if (result.isPresent() && !result.get().equals("null")) {
+            return result.get();
+        }
+        return null;
+    }
+
+    //弹出一个选择对话框
+    private String choiceAnonyDialog() {
+
+        List<String> choices = new ArrayList<>();
+        choices.add("no");
+        choices.add("yes");
+
+        ChoiceDialog<String> dialog = new ChoiceDialog<>("no", choices);
+        dialog.setTitle("是否匿名发布？");
+        dialog.setHeaderText("是否匿名发布？");
+        dialog.setContentText("选择:");
+
+// Traditional way to get the response value.
+        Optional<String> result = dialog.showAndWait();
+        return result.orElse(null);
+    }
+
+    private String[] createMultiInput() {
+
+        // Create the custom dialog.
+        Dialog<Map<String, String>> dialog = new Dialog<>();
+        dialog.setTitle("多参数搜索帖子");
+        dialog.setHeaderText("搜索");
+
+// Set the button types.
+        ButtonType loginButtonType = new ButtonType("搜索", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(loginButtonType, ButtonType.CANCEL);
+
+// Create the username and password labels and fields.
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField key_words_Field = new TextField();
+        key_words_Field.setPromptText("key_words:");
+        TextField category_Field = new TextField();
+        category_Field.setPromptText("category:");
+        TextField time_Field = new TextField();
+        time_Field.setPromptText("time_begin");
+        TextField time2_Fieled = new TextField();
+        time2_Fieled.setPromptText("time_end");
+
+
+        grid.add(new Label("key_words:"), 0, 0);
+        grid.add(key_words_Field, 1, 0);
+        grid.add(new Label("category:"), 0, 1);
+        grid.add(category_Field, 1, 1);
+        grid.add(new Label("time_begin:"), 0, 2);
+        grid.add(time_Field, 1, 2);
+        grid.add(new Label("time_end:"), 0, 3);
+        grid.add(time2_Fieled, 1, 3);
+
+
+// Enable/Disable login button depending on whether a username was entered.
+        Node loginbutton = dialog.getDialogPane().lookupButton(loginButtonType);
+        loginbutton.setDisable(true);
+
+// Do some validation (using the Java 8 lambda syntax).
+        key_words_Field.textProperty().addListener((observable, oldValue, newValue) -> {
+            loginbutton.setDisable(newValue.trim().isEmpty());
+        });
+
+        dialog.getDialogPane().setContent(grid);
+
+// Request focus on the username field by default.
+        Platform.runLater(() -> key_words_Field.requestFocus());
+
+// Convert the result to a username-password-pair when the login button is clicked.
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == loginButtonType) {
+                Map<String, String> result = new HashMap<>();
+                result.put("key_words", key_words_Field.getText());
+                result.put("category", category_Field.getText());
+                result.put("time_begin", time_Field.getText());
+                result.put("time_end", time2_Fieled.getText());
+                return result;
+            }
+            return null;
+        });
+
+        Optional<Map<String, String>> result = dialog.showAndWait();
+        result.ifPresent(value -> {
+            System.out.println("多参数搜索：");
+            System.out.println("key_words: " + value.get("key_words"));
+            System.out.println("category: " + value.get("category"));
+            System.out.println("time_begin: " + value.get("time_begin"));
+            System.out.println("time_end: " + value.get("time_end"));
+        });
+
+        String[] answer = {"", "", ""};
+        if (result.isPresent()) {
+            answer[0] = result.get().get("key_words");
+            answer[1] = result.get().get("category");
+            answer[2] = result.get().get("time_begin") + "~" + result.get().get("time_end");
+        }
+        return answer;
+    }
+
+
+    /**
+     * 用于收集发布post的其他信息
+     */
+    public void getPostContent(String title,String anony) throws IOException {
+        //弹窗，得到content
+        String content = "the author is lazy, he didn't put a content into database.";
+        JTextArea contentArea = new JTextArea(10, 30);
+        JScrollPane contentPane = new JScrollPane(contentArea);
+        contentArea.setLineWrap(true);
+        contentArea.setWrapStyleWord(true);
+        int ContentResult = JOptionPane.showConfirmDialog(null, contentPane, "请输入content:", JOptionPane.OK_CANCEL_OPTION);
+        if (ContentResult == JOptionPane.OK_OPTION) {
+            content = contentArea.getText();
+        }
+        System.out.println("content: " + content);
+
+        moos.writeObject(new Message(null, title, anony, content, MsgType.re_fa_bu_tie_zi_content));
+        moos.flush();
+    }
+
+    public void getPostCity(String title, String content, String[] cities,String anony) throws IOException {
+
+        //title 已获得
+        //content
+        //posting_time已获得(not author_reg_time)
+        //author_id
+        String author_id = username;
+
+        //city
+        JFrame cityFrame = new JFrame("为你的post选择city");
+        cityFrame.setLocationRelativeTo(null);
+        cityFrame.setSize(300, 70);
+        JPanel cityPanel = new JPanel();
+        JComboBox<String> cityComboBox = new JComboBox<>(cities);
+        cityComboBox.setMaximumRowCount(12);
+        cityPanel.add(cityComboBox);
+        cityFrame.add(cityPanel);
+        JButton cityOkButton = new JButton("确定");
+        cityOkButton.addActionListener(e -> {
+            String selectCity = (String) cityComboBox.getSelectedItem();
+            try {
+                //sendTo为title+content，data为city
+                moos.writeObject(new Message(System.currentTimeMillis(), username+"``"+anony, title + "``" + content,
+                        selectCity, MsgType.re_fa_bu_tie_zi_city));
+                moos.flush();
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+            cityFrame.dispose();
+        });
+        cityPanel.add(cityOkButton);
+//        cityFrame.pack();
+        cityFrame.setVisible(true);
+    }
+
+
+    //category
+    public void getPostCategories(int pid, String[] categories) {
+        Set<String> cates = new HashSet<>();
+        JFrame cateFrame = new JFrame("为你的post选择category（可多选）");
+        cateFrame.setLocationRelativeTo(null);
+        cateFrame.setSize(400, 600);
+        JPanel catePanel = new JPanel();
+        catePanel.setLayout(new BoxLayout(catePanel, BoxLayout.Y_AXIS));
+        JCheckBox[] checkBoxes = new JCheckBox[categories.length];
+        for (int i = 0; i < categories.length; i++) {
+            checkBoxes[i] = new JCheckBox(categories[i]);
+            catePanel.add(checkBoxes[i]);
+        }
+        JScrollPane scrollPane = new JScrollPane(catePanel);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        JButton okButton = new JButton("确定");
+        okButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        okButton.addActionListener(e -> {
+            for (int i = 0; i < categories.length; i++) {
+                if (checkBoxes[i].isSelected()) {
+                    cates.add(checkBoxes[i].getText());
+                }
+            }
+            try {
+                //sendTo为title，data为“``”加密categories
+                moos.writeObject(new Message(System.currentTimeMillis(), username, String.valueOf(pid), reSendCategory(cates), MsgType.re_fa_bu_tie_zi_category));
+                moos.flush();
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+            cateFrame.dispose();
+        });
+        Box box = Box.createVerticalBox();
+        box.add(okButton);
+        box.add(Box.createVerticalStrut(10));
+        box.add(scrollPane);
+        cateFrame.add(box);
+        cateFrame.setVisible(true);
+
+    }
+
+
+    private String reSendCategory(Set<String> set) {
+        StringBuilder sb = new StringBuilder();
+        for (String s : set) {
+            sb.append(s).append("``");
+        }
+        if (sb.length() > 1) {
+            sb.deleteCharAt(sb.length() - 1);
+            sb.deleteCharAt(sb.length() - 1);
+        }
+        return sb.toString();
+    }
+
+
+    public void createNewGcontroller(String s, String s2, String s3) {
+
+        Platform.runLater(() -> {
+            Stage groupStage = new Stage();
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("groupChatFX.fxml"));//链接fxml文件
+            try {
+                groupStage.setScene(new Scene(loader.load()));
+                GroupChatFX groupChatFX = loader.getController();
+                //更新一下该controller的表
+                this.client_gcontroller_map.put(s, groupChatFX);
+                this.group_gcontroller_map.put(s.split(":")[0], groupChatFX);
+                //让这个groupChatFX的userset完善
+                String[] userStringList = s3.split("~");
+                groupChatFX.GuserSet.addAll(Arrays.asList(userStringList));
+                groupChatFX.setGusernameLl(Integer.toString(userStringList.length));
+                groupChatFX.onlineUserInGroupList = FXCollections.observableArrayList(Arrays.asList(userStringList));
+                groupChatFX.GchatList.setItems(groupChatFX.onlineUserInGroupList);
 
 //                this.group_gcontroller_map.put(s.split(":")[0],groupChatFX);
 //                moos.writeObject(new Message(System.currentTimeMillis(),s.split(":")[0],"Server","group left lv",MsgType.G_LEFT_LV));
 //                moos.flush();
-        groupStage.setTitle(s2);
-        groupChatFX.setGroupname(s, this.moos);
-        groupStage.setOnCloseRequest(windowEvent -> {
-          //发送给server信息，将该用户从group中踢出去,sentby是同时包含了group的名字和username
-          try {
-            moos.writeObject(new Message(System.currentTimeMillis(), s, "Server", "exit the group", MsgType.EXIT_FROM_GROUP));
-            moos.flush();
-          } catch (IOException e) {
-            e.printStackTrace();
-          }
+                groupStage.setTitle(s2);
+                groupChatFX.setGroupname(s, this.moos);
+                groupStage.setOnCloseRequest(windowEvent -> {
+                    //发送给server信息，将该用户从group中踢出去,sentby是同时包含了group的名字和username
+                    try {
+                        moos.writeObject(new Message(System.currentTimeMillis(), s, "Server", "exit the group", MsgType.EXIT_FROM_GROUP));
+                        moos.flush();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                });
+                groupStage.show();
+                System.out.println(client_gcontroller_map);
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
         });
-        groupStage.show();
-        System.out.println(client_gcontroller_map);
-      } catch (IOException ex) {
-        ex.printStackTrace();
-      }
-    });
-  }
-
-  public void deleteChatOb(String str, String string) {
-    client_gcontroller_map.get(str).GsetLeftLV(string);
-  }
-
-  //返回值：第一个是Group的名字，后面是他所有的用户
-  private String group_create_helper(String str, List<String> list) {
-    StringBuilder stringBuilder = new StringBuilder();
-    stringBuilder.append(str);
-    stringBuilder.append("~");
-    for (String s : list) {
-      stringBuilder.append(s).append("~");
-    }
-    return stringBuilder.append(username).toString();
-  }
-
-
-  /**
-   * Sends the message to the <b>currently selected</b> chat.
-   * <p>
-   * Blank messages are not allowed.
-   * After sending the message, you should clear the text input field.
-   */
-  @FXML
-  public void doSendMessage() throws IOException {
-    // TODO
-    //发送一个信息给server
-    if (inputArea.getText() != null) {
-      String inputFromKeyBoard = inputArea.getText();
-      //清空原本的内容
-      inputArea.setText("");
-      //将message传给server
-      Message message = new Message(System.currentTimeMillis(), username, talkTo, inputFromKeyBoard, MsgType.TALK);
-      moos.writeObject(message);
-      moos.flush();
-      //加入自己的message显示中
-      Platform.runLater(() -> {
-        mesObservableList.add(message);
-        System.out.println(mesObservableList);
-        chatContentList.setItems(mesObservableList);
-      });
     }
 
-  }
 
-  public void receiveFile(String sender, byte[] bytes, Message message) {
-    Platform.runLater(() -> {
-      Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-      alert.setTitle("Confirmation Dialog");
-      alert.setHeaderText(sender + " send you a file");
-      alert.setContentText(sender + " send you a file, do you want to receive it?");
-
-      Optional<ButtonType> result = alert.showAndWait();
-      if (result.get() == ButtonType.OK) {
-//                // ... user chose OK
-//                JFileChooser jFileChooser = new JFileChooser(outPath);
-//                jFileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-//                jFileChooser.showOpenDialog(null);
-//                String selectedPath = jFileChooser.getSelectedFile().getAbsolutePath();
-////                bytesToFile(bytes, selectedPath);
-//
-        TextInputDialog dialog = new TextInputDialog("woohuu!");
-        dialog.setTitle("Text Input Dialog");
-        dialog.setContentText("Please set file name: ");
-
-// Traditional way to get the response value.
-        Optional<String> result1 = dialog.showAndWait();
-        String fName = "";
-        if (result1.isPresent()) fName = result1.get();
-
-        byte2File(fName, message);
-      } else {
-        System.out.println(userSet + " refuse the file sent by " + sender);
-      }
-
-    });
-
-  }
-
-  public static void byte2File(String fileName, Message message) {
-    BufferedOutputStream bos = null;
-    FileOutputStream fos = null;
-    try {
-//            File dir=new File(filePath);
-//            if(!dir.exists() && !dir.isDirectory()){//判断文件目录是否存在
-//                dir.mkdirs();
-//            }
-
-      fos = new FileOutputStream("C:\\Users\\y1211\\Desktop\\java2_assignment\\CS029A_assignment2\\fileReceiver\\" + fileName);
-      bos = new BufferedOutputStream(fos);
-      bos.write(message.content, 0, message.content.length);
-    } catch (Exception e) {
-      System.out.println(e.getMessage());
-      e.printStackTrace();
-    } finally {
-      try {
-        if (bos != null) {
-          bos.close();
-        }
-        if (fos != null) {
-          fos.close();
-        }
-      } catch (Exception e) {
-        System.out.println(e.getMessage());
-        e.printStackTrace();
-      }
-    }
-  }
-
-  private File bytesToFile(byte[] bytes, String outPath) {
-    BufferedOutputStream bos = null;
-    FileOutputStream fos = null;
-    File file = null;
-    try {
-      File dir = new File(outPath);
-      if (!dir.exists() && dir.isDirectory()) { //判断文件目录是否存在
-        dir.mkdirs();
-      }
-
-      String fileName;
-      TextInputDialog dialog = new TextInputDialog("woohuu!");
-      dialog.setTitle("Text Input Dialog");
-      dialog.setContentText("Please set file name: ");
-
-// Traditional way to get the response value.
-      Optional<String> result = dialog.showAndWait();
-      if (result.isPresent()) {
-        fileName = result.get();
-        file = new File(outPath + File.separator + fileName);
-        fos = new FileOutputStream(file);
-//                bos = new BufferedOutputStream(fos);
-        fos.write(bytes, 0, bytes.length);
-        fos.flush();
-
-      } else {
-        System.out.println("you stopped the file transfer.");
-      }
-
-
-    } catch (Exception e) {
-      e.printStackTrace();
-    } finally {
-      if (bos != null) {
-        try {
-          bos.close();
-        } catch (IOException e1) {
-          e1.printStackTrace();
-        }
-      }
-      if (fos != null) {
-        try {
-          fos.close();
-        } catch (IOException e1) {
-          e1.printStackTrace();
-        }
-      }
-    }
-    return file;
-  }
-
-  /**
-   * You may change the cell factory if you changed the design of {@code Message} model.
-   * Hint: you may also define a cell factory for the chats displayed in the left panel, or simply override the toString method.
-   */
-  private class MessageCellFactory implements Callback<ListView<Message>, ListCell<Message>> {
-    @Override
-    public ListCell<Message> call(ListView<Message> param) {
-      return new ListCell<Message>() {
-
+    /**
+     * You may change the cell factory if you changed the design of {@code Message} model.
+     * Hint: you may also define a cell factory for the chats displayed in the left panel, or simply override the toString method.
+     */
+    private class MessageCellFactory implements Callback<ListView<Message>, ListCell<Message>> {
         @Override
-        public void updateItem(Message msg, boolean empty) {
-          super.updateItem(msg, empty);
-          if (empty || Objects.isNull(msg)) {
-            //阻止切换聊天对象时出现bug
-            setText(null);
-            setGraphic(null);
-            return;
-          }
+        public ListCell<Message> call(ListView<Message> param) {
+            return new ListCell<Message>() {
 
-          HBox wrapper = new HBox();
-          Label nameLabel = new Label(msg.getSentBy());
-          Label msgLabel = new Label(msg.getData());
+                @Override
+                public void updateItem(Message msg, boolean empty) {
+                    super.updateItem(msg, empty);
+                    if (empty || Objects.isNull(msg)) {
+                        //阻止切换聊天对象时出现bug
+                        setText(null);
+                        setGraphic(null);
+                        return;
+                    }
 
-          nameLabel.setPrefSize(50, 20);
-          nameLabel.setWrapText(true);
-          nameLabel.setStyle("-fx-border-color: black; -fx-border-width: 1px;");
+                    HBox wrapper = new HBox();
+                    Label nameLabel = new Label(msg.getSentBy());
+                    Label msgLabel = new Label(msg.getData());
 
-          if (username.equals(msg.getSentBy())) {
-            wrapper.setAlignment(Pos.TOP_RIGHT);
-            wrapper.getChildren().addAll(msgLabel, nameLabel);
-            msgLabel.setPadding(new Insets(0, 20, 0, 0));
-          } else {
-            wrapper.setAlignment(Pos.TOP_LEFT);
-            wrapper.getChildren().addAll(nameLabel, msgLabel);
-            msgLabel.setPadding(new Insets(0, 0, 0, 20));
-          }
+                    nameLabel.setPrefSize(50, 20);
+                    nameLabel.setWrapText(true);
+                    nameLabel.setStyle("-fx-border-color: black; -fx-border-width: 1px;");
 
-          setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
-          setGraphic(wrapper);
+                    if (username.equals(msg.getSentBy())) {
+                        wrapper.setAlignment(Pos.TOP_RIGHT);
+                        wrapper.getChildren().addAll(msgLabel, nameLabel);
+                        msgLabel.setPadding(new Insets(0, 20, 0, 0));
+                    } else {
+                        wrapper.setAlignment(Pos.TOP_LEFT);
+                        wrapper.getChildren().addAll(nameLabel, msgLabel);
+                        msgLabel.setPadding(new Insets(0, 0, 0, 20));
+                    }
+
+                    setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
+                    setGraphic(wrapper);
+                }
+            };
         }
-      };
     }
-  }
 
-  public void ntAllowLoginFeedBk() {
-    Platform.runLater(() -> {
-      Alert alert = new Alert(Alert.AlertType.WARNING);
-      alert.setTitle("only 2 people");
-      alert.setHeaderText("Invalid message");
-      alert.setContentText("You entered an invalid username\nplease enter again later");
-      alert.showAndWait();
-      System.exit(0);
-    });
-  }
 
-  public void r_fail() {
-    Platform.runLater(() -> {
-      Alert alert = new Alert(Alert.AlertType.WARNING);
-      alert.setTitle("repetitive username");
-      alert.setHeaderText("repetitive username");
-      alert.setContentText("repetitive username : try another username!");
-      alert.showAndWait();
-      System.exit(0);
-    });
-  }
-
-  public void addEmoji() {
-    VBox vbox = new VBox(); // 创建一个垂直箱子
-    HBox hbox = new HBox(); // 创建一个水平箱子
-    RadioButton rb1 = new RadioButton("笑"); // 创建一个单选按钮
-    rb1.setSelected(true); // 设置按钮是否选中
-    RadioButton rb2 = new RadioButton("哭"); // 创建一个单选按钮
-    RadioButton rb3 = new RadioButton("黑椒牛排饭"); // 创建一个单选按钮
-    hbox.getChildren().addAll(rb1, rb2, rb3); // 把三个单选按钮一起加到水平箱子上
-    ToggleGroup group = new ToggleGroup(); // 创建一个按钮小组
-    rb1.setToggleGroup(group); // 把单选按钮1加入到按钮小组
-    rb2.setToggleGroup(group); // 把单选按钮2加入到按钮小组
-    rb3.setToggleGroup(group); // 把单选按钮3加入到按钮小组
-    Label label = new Label("这里查看点餐结果"); // 创建一个标签
-    label.setWrapText(true); // 设置标签文本是否支持自动换行
-    vbox.getChildren().addAll(hbox, label); // 把水平箱子和标签一起加到垂直箱子上
-    // 设置单选组合的单击监听器
-    group.selectedToggleProperty().addListener(new ChangeListener<Toggle>() {
-      @Override
-      public void changed(ObservableValue<? extends Toggle> arg0, Toggle old_toggle, Toggle new_toggle) {
-        // 在标签上显示当前选中的单选按钮文本
-        label.setText("您点了" + ((RadioButton) new_toggle).getText());
-      }
-    });
-
-  }
-
-  //左下角当前用户显示
-  public void setCurrentUsername(String name) {
-    currentUsername.setText("Current User: " + name);
-  }
-
-  //在线人数显示
-  public void setCuNum(String a) {
-    Platform.runLater(() -> currentOnlineCnt.setText("Online:" + a));
-  }
-
-  //设置好左侧聊天对象栏
-  public void setLeftLV(String[] string) {
-    Platform.runLater(() -> {
-      ArrayList<String> str = new ArrayList<>();
-      for (String s : string) {
-        if (!s.equals(username)) {
-          str.add(s);
-        }
-      }
-      String[] sss = new String[str.size()];
-      for (int i = 0; i < str.size(); i++) {
-        sss[i] = str.get(i);
-      }
-      stringObservableList = FXCollections.observableArrayList(Arrays.asList(sss));
-      chatList.setItems(stringObservableList);
-    });
-  }
-
-  //用于更新聊天内容
-  public void setMsgLV(Message message) {
-    Platform.runLater(() -> {
-      mesObservableList.add(message);
-      chatContentList.setItems(mesObservableList);
-      System.out.println("更新聊天内容了");
-    });
-  }
-
-  //用于在切换聊天对象时重新刷新聊天
-  public void reWriteMsgLV() {
-    Platform.runLater(() -> {
-      mesObservableList = FXCollections.observableArrayList();
-      chatContentList.setItems(mesObservableList);
-    });
-  }
-
-  public void privateChatHelper() {
-    //发送给server信息，告诉server该客户端talkTo的对象
-    try {
-      moos.writeObject(new Message(System.currentTimeMillis(), username, talkTo, "talkingTo", MsgType.TALKINGTO));
-      System.out.println("talking to success");
-      reWriteMsgLV();
-    } catch (IOException ex) {
-      ex.printStackTrace();
+    public void r_fail() {
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("repetitive username");
+            alert.setHeaderText("repetitive username");
+            alert.setContentText("repetitive username : try another username!");
+            alert.showAndWait();
+            System.exit(0);
+        });
     }
-    talkWith.setText("talking to: " + talkTo);
-  }
 
 
-  public void Pop_window(String s) {
-    Platform.runLater(() -> {
-      Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-      alert.setTitle("Someone quit: " + s);
-      alert.setHeaderText("Do you wanna keep the chat stage with " + s);
-      alert.setContentText("Choose your option");
+    public void Pop_window(String s) {
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Someone quit: " + s);
+            alert.setHeaderText("Do you wanna keep the chat stage with " + s);
+            alert.setContentText("Choose your option");
 
-      ButtonType buttonTypeOne = new ButtonType("Yes");
-      ButtonType buttonTypeTwo = new ButtonType("No");
-      ButtonType buttonTypeCancel = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
+            ButtonType buttonTypeOne = new ButtonType("Yes");
+            ButtonType buttonTypeTwo = new ButtonType("No");
+            ButtonType buttonTypeCancel = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
 
-      alert.getButtonTypes().setAll(buttonTypeOne, buttonTypeTwo, buttonTypeCancel);
+            alert.getButtonTypes().setAll(buttonTypeOne, buttonTypeTwo, buttonTypeCancel);
 
-      Optional<ButtonType> result = alert.showAndWait();
-      if (result.get() == buttonTypeOne) {
-        alert.close();
-      } else if (result.get() == buttonTypeTwo) {
-        // ... user chose "Two"
-        //发送消息告诉我不要了
-        try {
-          moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", "no keep", MsgType.EXIT_NO_KEEP));
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
-      } else {
-        alert.close();
-      }
-    });
+            Optional<ButtonType> result = alert.showAndWait();
+            if (result.get() == buttonTypeOne) {
+                alert.close();
+            } else if (result.get() == buttonTypeTwo) {
+                // ... user chose "Two"
+                //发送消息告诉我不要了
+                try {
+                    moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", "no keep", MsgType.EXIT_NO_KEEP));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                alert.close();
+            }
+        });
 
-  }
+    }
 
-  public void RLStageOperate() {
-    Platform.runLater(() -> {
-      Stage stage = new Stage();
-      VBox vbox = new VBox(); // 创建一个垂直箱子
-      HBox hbox = new HBox(); // 创建一个水平箱子
-      Button rb1 = new Button("Register"); // 创建一个单选按钮
-      rb1.setOnAction(new EventHandler<ActionEvent>() {
-        @Override
-        public void handle(ActionEvent actionEvent) {
-          registerOr = "register";
-          stage.close();
-        }
-      });
-//        rb1.setSelected(true); // 设置按钮是否选中
-      Button rb2 = new Button("Login"); // 创建一个单选按钮
-      rb2.setOnAction(new EventHandler<ActionEvent>() {
-        @Override
-        public void handle(ActionEvent actionEvent) {
-          registerOr = "login";
-          stage.close();
-        }
-      });
-      hbox.getChildren().addAll(rb1, rb2); // 把三个单选按钮一起加到水平箱子上
-      ToggleGroup group = new ToggleGroup(); // 创建一个按钮小组
-      Label label = new Label("第一次进入请选择“Register”"); // 创建一个标签
-      label.setWrapText(true); // 设置标签文本是否支持自动换行
-      vbox.getChildren().addAll(label, hbox); // 把水平箱子和标签一起加到垂直箱子上
-      stage.setScene(new Scene(vbox));
-    });
 
-  }
 }

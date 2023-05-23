@@ -9,5 +9,14 @@
         <version>dev-SNAPSHOT</version>
     </parent>
 
+    <dependencies>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.3.8</version>
+        </dependency>
+    </dependencies>
+
+
     <artifactId>chatting-common</artifactId>
 </project>
