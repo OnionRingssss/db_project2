@@ -614,11 +614,7 @@ class ServerReader implements Runnable {
             }
         } catch (IOException | ClassNotFoundException e) {
             System.out.println("null");
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        } catch (UnsupportedAudioFileException e) {
-            throw new RuntimeException(e);
-        } catch (LineUnavailableException e) {
+        } catch (SQLException | UnsupportedAudioFileException | LineUnavailableException e) {
             throw new RuntimeException(e);
         }
     }
