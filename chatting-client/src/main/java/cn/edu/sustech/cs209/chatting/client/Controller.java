@@ -34,7 +34,6 @@ public class Controller implements Initializable {
     public OOS_OIS.MyObjectOutputStream moos;
     public Map<String, GroupChatFX> group_gcontroller_map = new HashMap<>();
     public Map<String, GroupChatFX> client_gcontroller_map = new HashMap<>();
-    public Set<String> userSet = new HashSet<>();
 
 
     String username;//author_id
@@ -45,7 +44,10 @@ public class Controller implements Initializable {
     /**
      * 在javafx中的组件
      */
+    @FXML
     public javafx.scene.control.TextArea hotSearchArea;
+    @FXML
+    public javafx.scene.control.Label idShower;
 
 
     @Override
@@ -72,7 +74,8 @@ public class Controller implements Initializable {
 // Set the button types.
         ButtonType registerButtonType = new ButtonType("Register", ButtonBar.ButtonData.OK_DONE);
         ButtonType loginButtonType = new ButtonType("Login", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(registerButtonType, loginButtonType, ButtonType.CANCEL);
+        ButtonType visitorButtonType = new ButtonType("Visitor", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(visitorButtonType, registerButtonType, loginButtonType, ButtonType.CANCEL);
 
 // Create the username and password labels and fields.
         GridPane grid = new GridPane();
@@ -97,13 +100,16 @@ public class Controller implements Initializable {
 // Enable/Disable login button depending on whether a username was entered.
         Node registerbutton = dialog.getDialogPane().lookupButton(registerButtonType);
         Node loginbutton = dialog.getDialogPane().lookupButton(loginButtonType);
+        Node visitorbutton = dialog.getDialogPane().lookupButton(visitorButtonType);
         registerbutton.setDisable(true);
         loginbutton.setDisable(true);
+        visitorbutton.setDisable(true);
 
 // Do some validation (using the Java 8 lambda syntax).
         user_author_id_Field.textProperty().addListener((observable, oldValue, newValue) -> {
             loginbutton.setDisable(newValue.trim().isEmpty());
             registerbutton.setDisable(newValue.trim().isEmpty());
+            visitorbutton.setDisable(newValue.trim().isEmpty());
         });
 
         dialog.getDialogPane().setContent(grid);
@@ -127,6 +133,13 @@ public class Controller implements Initializable {
                 result.put("phone", user_author_phone_Field.getText());
                 result.put("type", "register");
                 return result;
+            } else if (dialogButton == visitorButtonType) {
+                Map<String, String> result = new HashMap<>();
+                result.put("id", "you_ke");
+                result.put("name", "you_ke");
+                result.put("phone", "you_ke");
+                result.put("type", "visitor");
+                return result;
             }
             return null;
         });
@@ -140,7 +153,7 @@ public class Controller implements Initializable {
         });
 
 //    if (input1.isPresent() && !input1.get().isEmpty()) {
-        if (result.isPresent() && !result.get().isEmpty()) {
+        if (result.isPresent() && !result.get().isEmpty() && result.get().get("id") != null && result.get().get("name") != null && result.get().get("phone") != null) {
             username = result.get().get("id");
             user_author_name = result.get().get("name");
             user_author_phone = result.get().get("phone");
@@ -155,8 +168,9 @@ public class Controller implements Initializable {
             }
 
         } else {
+            pop_error("你已经取消登录/注册", true);
             System.out.println("Empty username of password!");
-            Platform.exit();
+//            Platform.exit();
         }
 
     }
@@ -180,134 +194,207 @@ public class Controller implements Initializable {
 
     @FXML //点赞
     public void click_dianZan() throws IOException {
-        String str = textInDialog("输入你想点赞的帖子id：");
-        moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", str, MsgType.dian_zan));
-        moos.flush();
+        if (!username.equals("you_ke")) {
+            String str = textInDialog("输入你想点赞的帖子id：");
+            moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", str, MsgType.dian_zan));
+            moos.flush();
+        } else {
+            pop_error("现在是游客模式，无法点赞", false);
+        }
     }
 
     @FXML //收藏
     public void click_shouCang() throws IOException {
-        String str = textInDialog("输入你想收藏的帖子id： ");
-        moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", str, MsgType.shou_cang));
-        moos.flush();
+        if (!username.equals("you_ke")) {
+            String str = textInDialog("输入你想收藏的帖子id： ");
+            moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", str, MsgType.shou_cang));
+            moos.flush();
+        } else {
+            pop_error("现在是游客模式，无法收藏", false);
+        }
     }
 
     @FXML //转发
     public void click_zhuanFa() throws IOException {
-        String str = textInDialog("输入你想转发的帖子id： ");
-        moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", str, MsgType.zhuan_fa));
-        moos.flush();
+        if (!username.equals("you_ke")) {
+            String str = textInDialog("输入你想转发的帖子id： ");
+            moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", str, MsgType.zhuan_fa));
+            moos.flush();
+        } else {
+            pop_error("现在是游客模式，无法转发", false);
+        }
     }
 
     @FXML //查看点赞
     public void click_chaKanDianZan() throws IOException {
-        moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", username, MsgType.cha_kan_dian_zan));
-        moos.flush();
+        if (!username.equals("you_ke")) {
+            moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", username, MsgType.cha_kan_dian_zan));
+            moos.flush();
+        } else {
+            pop_error("现在是游客模式，你没有任何点赞记录", false);
+        }
     }
 
     @FXML //查看收藏
     public void click_chaKanShouCang() throws IOException {
-        moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", username, MsgType.cha_kan_shou_cang));
-        moos.flush();
+        if (!username.equals("you_ke")) {
+            moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", username, MsgType.cha_kan_shou_cang));
+            moos.flush();
+        } else {
+            pop_error("现在是游客模式，你没有任何收藏记录", false);
+        }
     }
 
     @FXML //查看转发
     public void click_chaKanZhuanFa() throws IOException {
-        moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", username, MsgType.cha_kan_zhuan_fa));
-        moos.flush();
+        if (!username.equals("you_ke")) {
+            moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", username, MsgType.cha_kan_zhuan_fa));
+            moos.flush();
+        } else {
+            pop_error("现在是游客模式，你没有任何转发记录", false);
+        }
     }
 
     @FXML // 关注
     public void click_guanZhu() throws IOException {
-        String str = textInDialog("输入你想关注的作者id： ");
-        moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", str, MsgType.guan_zhu));
-        moos.flush();
+        if (!username.equals("you_ke")) {
+            String str = textInDialog("输入你想关注的作者id： ");
+            moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", str, MsgType.guan_zhu));
+            moos.flush();
+        } else {
+            pop_error("现在是游客模式，无法关注", false);
+        }
     }
 
     @FXML //取消关注
     public void click_quXiaoGuanZhu() throws IOException {
-        String str = textInDialog("输入你想取消关注的作者id： ");
-        moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", str, MsgType.qu_xiao_guan_zhu));
-        moos.flush();
+        if (!username.equals("you_ke")) {
+            String str = textInDialog("输入你想取消关注的作者id： ");
+            moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", str, MsgType.qu_xiao_guan_zhu));
+            moos.flush();
+        } else {
+            pop_error("现在是游客模式，你没有关注记录", false);
+        }
     }
 
     @FXML //查看关注
     public void click_chaKanGuanZhu() throws IOException {
-        moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", username, MsgType.cha_kan_guan_zhu));
-        moos.flush();
+        if (!username.equals("you_ke")) {
+            moos.writeObject(new Message(System.currentTimeMillis(), username, "Server", username, MsgType.cha_kan_guan_zhu));
+            moos.flush();
+        } else {
+            pop_error("现在是游客模式，你没有关注记录", false);
+        }
     }
 
     @FXML //发布帖子
     public void click_faBuTieZi() throws IOException {
-        String str = textInDialog("输入你想发布的帖子的标题（title）");
-        String anony = choiceAnonyDialog();
-        if (anony == null) {
-            pop_error("请再次尝试",false);
+        if (!username.equals("you_ke")) {
+            String str = textInDialog("输入你想发布的帖子的标题（title）");
+            String anony = choiceAnonyDialog();
+            if (anony == null) {
+                pop_error("请再次尝试", false);
+            } else {
+                moos.writeObject(new Message(System.currentTimeMillis(), username, anony, str, MsgType.fa_bu_tie_zi));
+                moos.flush();
+            }
         } else {
-            moos.writeObject(new Message(System.currentTimeMillis(), username, anony, str, MsgType.fa_bu_tie_zi));
-            moos.flush();
+            pop_error("现在是游客模式，无法发布帖子", false);
         }
     }
 
 
     @FXML //回复帖子
     public void click_huiFuTieZi() throws IOException {
-        String str = textInDialog("输入你想回复的帖子的id：");
-        //reply content
-        String content = null;
-        JTextArea contentArea = new JTextArea(10, 30);
-        JScrollPane contentPane = new JScrollPane(contentArea);
-        contentArea.setLineWrap(true);
-        contentArea.setWrapStyleWord(true);
-        int ContentResult = JOptionPane.showConfirmDialog(null, contentPane, "请输入content:", JOptionPane.OK_CANCEL_OPTION);
-        if (ContentResult == JOptionPane.OK_OPTION) {
-            content = contentArea.getText();
+        if (!username.equals("you_ke")) {
+            String str = textInDialog("输入你想回复的帖子的id：");
+            //reply content
+            String content = null;
+            JTextArea contentArea = new JTextArea(10, 30);
+            JScrollPane contentPane = new JScrollPane(contentArea);
+            contentArea.setLineWrap(true);
+            contentArea.setWrapStyleWord(true);
+            int ContentResult = JOptionPane.showConfirmDialog(null, contentPane, "请输入content:", JOptionPane.OK_CANCEL_OPTION);
+            if (ContentResult == JOptionPane.OK_OPTION) {
+                content = contentArea.getText();
+            }
+            moos.writeObject(new Message(null, username, str, content, MsgType.hui_fu_tie_zi));
+            moos.flush();
+        } else {
+            pop_error("现在是游客模式，无法发布回复", false);
         }
-        moos.writeObject(new Message(null, username, str, content, MsgType.hui_fu_tie_zi));
-        moos.flush();
     }
 
     @FXML //回复回复
     public void click_huiFuHuiFu() throws IOException {
-        String str = textInDialog("输入你想回复的回复的id：");
-        //reply content
-        String content = null;
-        JTextArea contentArea = new JTextArea(10, 30);
-        JScrollPane contentPane = new JScrollPane(contentArea);
-        contentArea.setLineWrap(true);
-        contentArea.setWrapStyleWord(true);
-        int ContentResult = JOptionPane.showConfirmDialog(null, contentPane, "请输入content:", JOptionPane.OK_CANCEL_OPTION);
-        if (ContentResult == JOptionPane.OK_OPTION) {
-            content = contentArea.getText();
+        if (!username.equals("you_ke")) {
+            String str = textInDialog("输入你想回复的回复的id：");
+            //reply content
+            String content = null;
+            JTextArea contentArea = new JTextArea(10, 30);
+            JScrollPane contentPane = new JScrollPane(contentArea);
+            contentArea.setLineWrap(true);
+            contentArea.setWrapStyleWord(true);
+            int ContentResult = JOptionPane.showConfirmDialog(null, contentPane, "请输入content:", JOptionPane.OK_CANCEL_OPTION);
+            if (ContentResult == JOptionPane.OK_OPTION) {
+                content = contentArea.getText();
+            }
+            moos.writeObject(new Message(null, username, str, content, MsgType.hui_fu_hui_fu));
+            moos.flush();
+        } else {
+            pop_error("现在是游客模式，无法发布二级回复", false);
         }
-        moos.writeObject(new Message(null, username, str, content, MsgType.hui_fu_hui_fu));
-        moos.flush();
     }
 
 
     @FXML//查看别人发布的帖子
-    public void click_chaKanOthersPost() throws IOException{
+    public void click_chaKanOthersPost() throws IOException {
         String str = textInDialog("输入你想查看到作者id：");
-        moos.writeObject(new Message(null,username,null,str,MsgType.cha_kan_ta_ren_fa_bu));
+        moos.writeObject(new Message(null, username, null, str, MsgType.cha_kan_ta_ren_fa_bu));
         moos.flush();
     }
 
     @FXML //查看自己发布的帖子
     public void click_chaKanFaBu() throws IOException {
-        moos.writeObject(new Message(null, username, null, null, MsgType.cha_kan_fa_bu));
-        moos.flush();
+        if (!username.equals("you_ke")) {
+            moos.writeObject(new Message(null, username, null, null, MsgType.cha_kan_fa_bu));
+            moos.flush();
+        } else {
+            pop_error("现在是游客模式，你没有发布任何帖子", false);
+        }
     }
 
     @FXML //查看自己回复的帖子
     public void click_chaKanHuiFu() throws IOException {
-        moos.writeObject(new Message(null, username, null, null, MsgType.cha_kan_hui_fu));
-        moos.flush();
+        if (!username.equals("you_ke")) {
+            moos.writeObject(new Message(null, username, null, null, MsgType.cha_kan_hui_fu));
+            moos.flush();
+        } else {
+            pop_error("现在是游客模式，你没有发布任何回复", false);
+        }
     }
 
     @FXML //查看自己的二级回复
     public void click_chaKanErJiHuiFu() throws IOException {
-        moos.writeObject(new Message(null, username, null, null, MsgType.cha_kan_er_ji_hui_fu));
-        moos.flush();
+        if (!username.equals("you_ke")) {
+            moos.writeObject(new Message(null, username, null, null, MsgType.cha_kan_er_ji_hui_fu));
+            moos.flush();
+        } else {
+            pop_error("现在是游客模式，你没有发布任何二级回复", false);
+        }
+    }
+
+    @FXML //类型搜索
+    public void click_cateSearch() throws IOException {
+        String str = textInDialog("请输入筛选类型的id或名称：");
+        if (str != null) {
+            if (str.split(" ").length >= 2) {
+                pop_error("请只输入一种形式", false);
+            } else {
+                moos.writeObject(new Message(null, null, null, str, MsgType.lei_xing_sou_suo));
+                moos.flush();
+            }
+        }
     }
 
     @FXML //多参数搜索帖子
@@ -319,11 +406,38 @@ public class Controller implements Initializable {
     }
 
     @FXML //屏蔽
-    public void click_pingBi() throws IOException{
-        String str = textInDialog("输入你想屏蔽的作者id：");
-        moos.writeObject(new Message(null,username,null,str,MsgType.ping_bi));
+    public void click_pingBi() throws IOException {
+        if (!username.equals("you_ke")) {
+            String str = textInDialog("输入你想屏蔽的作者id：");
+            moos.writeObject(new Message(null, username, null, str, MsgType.ping_bi));
+            moos.flush();
+        } else {
+            pop_error("现在是游客模式，无法使用屏蔽功能", false);
+        }
+    }
+
+    @FXML //收听音频
+    public void click_yinPin() throws IOException {
+        moos.writeObject(new Message(null, username, null, null, MsgType.yin_pin));
         moos.flush();
     }
+
+    public void morePostInfo(String str) throws IOException {
+        if (isNumeric(str.split(" ")[0])) {
+            moos.writeObject(new Message(null, username, null, str, MsgType.more_post_information));
+            moos.flush();
+        }
+    }
+
+    public static boolean isNumeric(String str) {
+        for (int i = 0; i < str.length(); i++) {
+            if (!Character.isDigit(str.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 
     private String[] multiSearchInput() {
         String[] answer = new String[3];
@@ -498,7 +612,7 @@ public class Controller implements Initializable {
     /**
      * 用于收集发布post的其他信息
      */
-    public void getPostContent(String title,String anony) throws IOException {
+    public void getPostContent(String title, String anony) throws IOException {
         //弹窗，得到content
         String content = "the author is lazy, he didn't put a content into database.";
         JTextArea contentArea = new JTextArea(10, 30);
@@ -515,7 +629,7 @@ public class Controller implements Initializable {
         moos.flush();
     }
 
-    public void getPostCity(String title, String content, String[] cities,String anony) throws IOException {
+    public void getPostCity(String title, String content, String[] cities, String anony) throws IOException {
 
         //title 已获得
         //content
@@ -537,7 +651,7 @@ public class Controller implements Initializable {
             String selectCity = (String) cityComboBox.getSelectedItem();
             try {
                 //sendTo为title+content，data为city
-                moos.writeObject(new Message(System.currentTimeMillis(), username+"``"+anony, title + "``" + content,
+                moos.writeObject(new Message(System.currentTimeMillis(), username + "``" + anony, title + "``" + content,
                         selectCity, MsgType.re_fa_bu_tie_zi_city));
                 moos.flush();
             } catch (IOException ex) {
@@ -644,6 +758,27 @@ public class Controller implements Initializable {
                 ex.printStackTrace();
             }
         });
+    }
+
+    //创造一个用于选择音频的框
+    public String chooseAudioDialog(String[] paths) {
+        List<String> choices = new ArrayList<>();
+        choices.addAll(Arrays.asList(paths));
+
+        ChoiceDialog<String> dialog = new ChoiceDialog<>(paths[0], choices);
+        dialog.setTitle("Choice Dialog");
+        dialog.setHeaderText("选择你想听的音乐");
+        dialog.setContentText("选择音乐:");
+
+// Traditional way to get the response value.
+        Optional<String> result = dialog.showAndWait();
+        return result.orElse(null);
+    }
+
+    public void chooseAudio(String [] paths) throws IOException {
+        String title = chooseAudioDialog(paths);
+        moos.writeObject(new Message(null,username,null,title,MsgType.yin_pin_again));
+        moos.flush();
     }
 
 

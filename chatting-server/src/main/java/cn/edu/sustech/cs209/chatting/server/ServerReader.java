@@ -5,6 +5,7 @@ import cn.edu.sustech.cs209.chatting.common.*;
 
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
+import javax.sql.DataSource;
 import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
@@ -14,6 +15,8 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Date;
+
+import com.alibaba.druid.pool.DruidDataSourceFactory;
 
 
 class ServerReader implements Runnable {
@@ -27,15 +30,26 @@ class ServerReader implements Runnable {
 
     @Override
     public void run() {
-        Properties prop = loadDBUser();
-        openDB(prop);
+//        Properties prop = loadDBUser();
+//        openDB(prop);
+        Properties pro = new Properties();
+        try {
+            pro.load(this.getClass().getClassLoader().getResourceAsStream("druid.properties"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            DataSource ds = DruidDataSourceFactory.createDataSource(pro);
+            openDB(ds);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
         try {
             OOS_OIS.MyObjectInputStream ois = new OOS_OIS.MyObjectInputStream(socket.getInputStream());
             OOS_OIS.MyObjectOutputStream os = new OOS_OIS.MyObjectOutputStream(socket.getOutputStream());
             //read message and send it
             while (true) {
-                System.out.println("2222222");
                 Message message = (Message) ois.readObject();
                 switch (message.getType()) {
                     case COMMAND:
@@ -80,32 +94,6 @@ class ServerReader implements Runnable {
                         }
                         break;
 
-                    case TALK:
-                        //用户发送信息给另一个用户
-                        //如果另一个用户在线
-//                        if (Users.one_to_one.containsKey(message.getSendTo())) {
-                        //另一个用户打开着相对应用户的聊天界面
-                        if (Users.one_to_one.get(message.getSendTo()).equals(message.getSentBy())) {
-                            //直接给他发送消息
-                            Users.user_user_messages.get(message.getSentBy() + "`" + message.getSendTo()).add(message);
-                            Users.user_user_messages.get(message.getSendTo() + "`" + message.getSentBy()).add(message);
-
-                            os = new OOS_OIS.MyObjectOutputStream(Users.user_socket_map.get(message.getSendTo()).getOutputStream());
-                            os.writeObject(message);
-                            os.flush();
-                        } else {
-                            //将信息放进该用户的聊天里，等到后续该用户打开时，一次性加载出来
-                            System.out.println("该用户在和其他用户聊天哦");
-                            Users.user_user_messages.get(message.getSentBy() + "`" + message.getSendTo()).add(message);
-                            Users.user_user_messages.get(message.getSendTo() + "`" + message.getSentBy()).add(message);
-                            try {
-                                MyAudioPlayer.playMusic();
-                            } catch (UnsupportedAudioFileException | LineUnavailableException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                        System.out.println("丰富了userusermessage给：" + message.getSentBy() + "`" + message.getSendTo());
-                        break;
 
                     case TALKINGTO:
                         //传入的信息中：sentby是改变talkingto的user，sendto是被改变后的talkingTo
@@ -133,6 +121,27 @@ class ServerReader implements Runnable {
                     case SERVER_EXIT:
                         System.out.println("Confirm server exit");
                         System.exit(0);
+                        break;
+
+                    case client_visitor:
+                        String SQL3 = "select *\n" +
+                                "from post join (select count(post_id) as c,post_id as p\n" +
+                                "from post_likes group by post_id order by c desc limit 10) x\n" +
+                                "on post_id = x.p where post_id = x.p order by x.c desc";
+                        PreparedStatement ppsm3 = con.prepareStatement(SQL3);
+                        ResultSet rsrs3 = ppsm3.executeQuery();
+                        StringBuilder sbsb3 = new StringBuilder();
+                        while (rsrs3.next()) {
+                            sbsb3.append(rsrs3.getInt(1)).append(" ").append(rsrs3.getString(2)).append("~~");
+                        }
+                        if (sbsb3.toString().endsWith("~~")) {
+                            sbsb3.deleteCharAt(sbsb3.length() - 1);
+                            sbsb3.deleteCharAt(sbsb3.length() - 1);
+                        }
+                        con.commit();
+                        System.out.println("execute ok");
+                        os.writeObject(new Message(System.currentTimeMillis(), "Server", null, sbsb3.toString(), MsgType.client_visitor));
+                        os.flush();
                         break;
 
                     case client_register:
@@ -206,21 +215,21 @@ class ServerReader implements Runnable {
                              * 加入map？没做
                              */
                             //SQL2 to get hot search list
-                            String SQL3 = "select *\n" +
+                            String SQL4 = "select *\n" +
                                     "from post join (select count(post_id) as c,post_id as p\n" +
                                     "from post_likes group by post_id order by c desc limit 10) x\n" +
                                     "on post_id = x.p where post_id = x.p order by x.c desc";
-                            PreparedStatement ppsm3 = con.prepareStatement(SQL3);
-                            ResultSet rsrs3 = ppsm3.executeQuery();
-                            StringBuilder sbsb3 = new StringBuilder();
-                            while (rsrs3.next()) {
-                                sbsb3.append(rsrs3.getInt(1)).append(" ").append(rsrs3.getString(2)).append("~~");
+                            PreparedStatement ppsm4 = con.prepareStatement(SQL4);
+                            ResultSet rsrs4 = ppsm4.executeQuery();
+                            StringBuilder sbsb4 = new StringBuilder();
+                            while (rsrs4.next()) {
+                                sbsb4.append(rsrs4.getInt(1)).append(" ").append(rsrs4.getString(2)).append("~~");
                             }
-                            if (sbsb3.toString().endsWith("~~")) {
-                                sbsb3.deleteCharAt(sbsb3.length() - 1);
-                                sbsb3.deleteCharAt(sbsb3.length() - 1);
+                            if (sbsb4.toString().endsWith("~~")) {
+                                sbsb4.deleteCharAt(sbsb4.length() - 1);
+                                sbsb4.deleteCharAt(sbsb4.length() - 1);
                             }
-                            os.writeObject(new Message(System.currentTimeMillis(), "Server", sendByLogin, sbsb3.toString(), MsgType.client_login_success));
+                            os.writeObject(new Message(System.currentTimeMillis(), "Server", sendByLogin, sbsb4.toString(), MsgType.client_login_success));
                             os.flush();
                         } else {//某一项不正确
                             os.writeObject(new Message(System.currentTimeMillis(), "Server", sendByLogin, "login Failed", MsgType.client_login_reject));
@@ -232,54 +241,60 @@ class ServerReader implements Runnable {
                         break;
 
                     case dian_zan: //点赞
-                        int post_id3 = Integer.parseInt(message.getData());
-                        if (judge_post_exist(post_id3)) {
-                            //判断是否已经点过赞了
-                            if (!judge_post_operations("post_likes", post_id3, message.getSentBy())) {
-                                do_post_operation("post_likes", post_id3, message.getSentBy());
-                                os.writeObject(new Message(null, "Server", message.getSentBy(), "success", MsgType.dian_zan));
-                                os.flush();
+                        if (message.getData() != null) {
+                            int post_id3 = Integer.parseInt(message.getData());
+                            if (judge_post_exist(post_id3)) {
+                                //判断是否已经点过赞了
+                                if (!judge_post_operations("post_likes", post_id3, message.getSentBy())) {
+                                    do_post_operation("post_likes", post_id3, message.getSentBy());
+                                    os.writeObject(new Message(null, "Server", message.getSentBy(), "success", MsgType.dian_zan));
+                                    os.flush();
+                                } else {
+                                    os.writeObject(new Message(null, "Server", message.getSentBy(), "have", MsgType.dian_zan));
+                                    os.flush();
+                                }
                             } else {
-                                os.writeObject(new Message(null, "Server", message.getSentBy(), "have", MsgType.dian_zan));
+                                os.writeObject(new Message(null, "Server", message.getSentBy(), "fail", MsgType.dian_zan));
                                 os.flush();
                             }
-                        } else {
-                            os.writeObject(new Message(null, "Server", message.getSentBy(), "fail", MsgType.dian_zan));
-                            os.flush();
                         }
                         break;
 
                     case shou_cang:
-                        int post_id4 = Integer.parseInt(message.getData());
-                        if (judge_post_exist(post_id4)) {
-                            if (!judge_post_operations("post_favorites", post_id4, message.getSentBy())) {
-                                do_post_operation("post_favorites", post_id4, message.getSentBy());
-                                os.writeObject(new Message(null, "Server", message.getSentBy(), "success", MsgType.shou_cang));
-                                os.flush();
+                        if (message.getData() != null) {
+                            int post_id4 = Integer.parseInt(message.getData());
+                            if (judge_post_exist(post_id4)) {
+                                if (!judge_post_operations("post_favorites", post_id4, message.getSentBy())) {
+                                    do_post_operation("post_favorites", post_id4, message.getSentBy());
+                                    os.writeObject(new Message(null, "Server", message.getSentBy(), "success", MsgType.shou_cang));
+                                    os.flush();
+                                } else {
+                                    os.writeObject(new Message(null, "Server", message.getSentBy(), "have", MsgType.shou_cang));
+                                    os.flush();
+                                }
                             } else {
-                                os.writeObject(new Message(null, "Server", message.getSentBy(), "have", MsgType.shou_cang));
+                                os.writeObject(new Message(null, "Server", message.getSentBy(), "fail", MsgType.shou_cang));
                                 os.flush();
                             }
-                        } else {
-                            os.writeObject(new Message(null, "Server", message.getSentBy(), "fail", MsgType.shou_cang));
-                            os.flush();
                         }
                         break;
 
                     case zhuan_fa:
-                        int post_id5 = Integer.parseInt(message.getData());
-                        if (judge_post_exist(post_id5)) {
-                            if (!judge_post_operations("post_shares", post_id5, message.getSentBy())) {
-                                do_post_operation("post_shares", post_id5, message.getSentBy());
-                                os.writeObject(new Message(null, "Server", message.getSentBy(), "success", MsgType.zhuan_fa));
-                                os.flush();
+                        if (message.getData() != null) {
+                            int post_id5 = Integer.parseInt(message.getData());
+                            if (judge_post_exist(post_id5)) {
+                                if (!judge_post_operations("post_shares", post_id5, message.getSentBy())) {
+                                    do_post_operation("post_shares", post_id5, message.getSentBy());
+                                    os.writeObject(new Message(null, "Server", message.getSentBy(), "success", MsgType.zhuan_fa));
+                                    os.flush();
+                                } else {
+                                    os.writeObject(new Message(null, "Server", message.getSentBy(), "have", MsgType.zhuan_fa));
+                                    os.flush();
+                                }
                             } else {
-                                os.writeObject(new Message(null, "Server", message.getSentBy(), "have", MsgType.zhuan_fa));
+                                os.writeObject(new Message(null, "Server", message.getSentBy(), "fail", MsgType.zhuan_fa));
                                 os.flush();
                             }
-                        } else {
-                            os.writeObject(new Message(null, "Server", message.getSentBy(), "fail", MsgType.zhuan_fa));
-                            os.flush();
                         }
                         break;
 
@@ -332,41 +347,45 @@ class ServerReader implements Runnable {
                         break;
 
                     case guan_zhu://关注
-                        //判断是否有这个authorId
-                        if (judge_author_exist(message.getSentBy())) {
-                            //判断是否已经关注了
-                            if (!judge_author_operation("post_followers", message.getData(), message.getSentBy())) {//如果还没有关注
-                                do_author_operation("post_followers", message.getData(), message.getSentBy());
-                                os.writeObject(new Message(System.currentTimeMillis(), "Server", message.getSentBy(), "success", MsgType.guan_zhu));
-                                os.flush();
-                            } else {
-                                os.writeObject(new Message(System.currentTimeMillis(), "Server", message.getSentBy(), "have", MsgType.guan_zhu));
+                        if (message.getSentBy() != null) {
+                            //判断是否有这个authorId
+                            if (judge_author_exist(message.getSentBy())) {
+                                //判断是否已经关注了
+                                if (!judge_author_operation("post_followers", message.getData(), message.getSentBy())) {//如果还没有关注
+                                    do_author_operation("post_followers", message.getData(), message.getSentBy());
+                                    os.writeObject(new Message(System.currentTimeMillis(), "Server", message.getSentBy(), "success", MsgType.guan_zhu));
+                                    os.flush();
+                                } else {
+                                    os.writeObject(new Message(System.currentTimeMillis(), "Server", message.getSentBy(), "have", MsgType.guan_zhu));
+                                    os.flush();
+                                }
+                            } else {//没有这个id
+                                os.writeObject(new Message(System.currentTimeMillis(), "Server", message.getSentBy(), "fail", MsgType.guan_zhu));
                                 os.flush();
                             }
-                        } else {//没有这个id
-                            os.writeObject(new Message(System.currentTimeMillis(), "Server", message.getSentBy(), "fail", MsgType.guan_zhu));
-                            os.flush();
                         }
                         break;
 
                     case qu_xiao_guan_zhu://取消关注
-                        if (judge_author_exist(message.getSentBy())) {
-                            if (!judge_author_operation("post_followers", message.getData(), message.getSentBy())) {//如果还没有关注
-                                os.writeObject(new Message(System.currentTimeMillis(), "Server", message.getSentBy(), "havent", MsgType.qu_xiao_guan_zhu));
-                                os.flush();
-                            } else {
-                                String sql10 = "delete from post_followers where follow_id = ? and author_id = ?";
-                                PreparedStatement ps10 = con.prepareStatement(sql10);
-                                ps10.setString(1, message.getSentBy());
-                                ps10.setString(2, message.getData());
-                                ps10.executeUpdate();
-                                con.commit();
-                                os.writeObject(new Message(System.currentTimeMillis(), "Server", message.getSentBy(), "success", MsgType.qu_xiao_guan_zhu));
+                        if (message.getSentBy() != null) {
+                            if (judge_author_exist(message.getSentBy())) {
+                                if (!judge_author_operation("post_followers", message.getData(), message.getSentBy())) {//如果还没有关注
+                                    os.writeObject(new Message(System.currentTimeMillis(), "Server", message.getSentBy(), "havent", MsgType.qu_xiao_guan_zhu));
+                                    os.flush();
+                                } else {
+                                    String sql10 = "delete from post_followers where follow_id = ? and author_id = ?";
+                                    PreparedStatement ps10 = con.prepareStatement(sql10);
+                                    ps10.setString(1, message.getSentBy());
+                                    ps10.setString(2, message.getData());
+                                    ps10.executeUpdate();
+                                    con.commit();
+                                    os.writeObject(new Message(System.currentTimeMillis(), "Server", message.getSentBy(), "success", MsgType.qu_xiao_guan_zhu));
+                                    os.flush();
+                                }
+                            } else {//没有这个id
+                                os.writeObject(new Message(System.currentTimeMillis(), "Server", message.getSentBy(), "fail", MsgType.qu_xiao_guan_zhu));
                                 os.flush();
                             }
-                        } else {//没有这个id
-                            os.writeObject(new Message(System.currentTimeMillis(), "Server", message.getSentBy(), "fail", MsgType.qu_xiao_guan_zhu));
-                            os.flush();
                         }
                         break;
 
@@ -387,56 +406,68 @@ class ServerReader implements Runnable {
                         break;
 
                     case fa_bu_tie_zi:
-                        if (judge_post_exist(message.getData())) { //如果title重复了
-                            os.writeObject(new Message(null, "Server", message.getSentBy(), "repetitive!!!", MsgType.fa_bu_tie_zi));
-                            os.flush();
-                        } else {
-                            //getdata ->title ,by-> anony
-                            os.writeObject(new Message(System.currentTimeMillis(), message.getSendTo(), message.getSentBy(), message.getData(), MsgType.fa_bu_tie_zi));
-                            os.flush();
+                        if (message.getData() != null) {
+                            if (judge_post_exist(message.getData())) { //如果title重复了
+                                os.writeObject(new Message(null, "Server", message.getSentBy(), "repetitive!!!", MsgType.fa_bu_tie_zi));
+                                os.flush();
+                            } else {
+                                //getdata ->title ,by-> anony
+                                os.writeObject(new Message(System.currentTimeMillis(), message.getSendTo(), message.getSentBy(), message.getData(), MsgType.fa_bu_tie_zi));
+                                os.flush();
+                            }
                         }
                         break;
 
                     case re_fa_bu_tie_zi_content://接受发送回来的content,发送回去city列表
                         //sentby: title~~anony  sendTo: content   data: city
-                        os.writeObject(new Message(null, message.getSentBy() + "~~" + message.getSendTo(), message.getData(),
-                                cityToString(getCity()), MsgType.re_fa_bu_tie_zi_content));
-                        os.flush();
-                        break;
-
-                    case re_fa_bu_tie_zi_city://接受发送回来的city
-                        int pid = do_post_city(message.getSendTo().split("``")[0], message.getSendTo().split("``")[1],
-                                System.currentTimeMillis(), message.getSentBy().split("``")[0], message.getData(), message.getSentBy().split("``")[1]);
-                        //将postid和category列表发送回去 sentBy:username sendTo:post_id data:categories(String)
-                        os.writeObject(new Message(null, message.getSentBy(), String.valueOf(pid), categoryToString(getCateGory()), MsgType.re_fa_bu_tie_zi_city));
-                        os.flush();
-                        break;
-
-                    case re_fa_bu_tie_zi_category://接受发送回来的categories
-                        do_post_categories(Integer.parseInt(message.getSendTo()), message.getData());
-                        os.writeObject(new Message(null, "Server", message.getSentBy(), "success", MsgType.re_fa_bu_tie_zi_category));
-                        os.flush();
-                        break;
-
-                    case hui_fu_tie_zi: //sentBy: username  sendTo:post_id  data: reply_content
-                        if (!judge_post_exist(Integer.parseInt(message.getSendTo()))) { // post_id not exist
-                            os.writeObject(new Message(null, "Server", message.getSentBy(), "fail", MsgType.hui_fu_tie_zi));
-                            os.flush();
-                        } else {
-                            do_reply_add(Integer.parseInt(message.getSendTo()), message.getData(), message.getSentBy());
-                            os.writeObject(new Message(null, "Server", message.getSentBy(), "success", MsgType.hui_fu_tie_zi));
+                        if (message.getSendTo() != null) {
+                            os.writeObject(new Message(null, message.getSentBy() + "~~" + message.getSendTo(), message.getData(),
+                                    cityToString(getCity()), MsgType.re_fa_bu_tie_zi_content));
                             os.flush();
                         }
                         break;
 
+                    case re_fa_bu_tie_zi_city://接受发送回来的city
+                        if (message.getData() != null) {
+                            int pid = do_post_city(message.getSendTo().split("``")[0], message.getSendTo().split("``")[1],
+                                    System.currentTimeMillis(), message.getSentBy().split("``")[0], message.getData(), message.getSentBy().split("``")[1]);
+                            //将postid和category列表发送回去 sentBy:username sendTo:post_id data:categories(String)
+                            os.writeObject(new Message(null, message.getSentBy(), String.valueOf(pid), categoryToString(getCateGory()), MsgType.re_fa_bu_tie_zi_city));
+                            os.flush();
+                        }
+                        break;
+
+                    case re_fa_bu_tie_zi_category://接受发送回来的categories
+                        if (message.getData() != null) {
+                            do_post_categories(Integer.parseInt(message.getSendTo()), message.getData());
+                            os.writeObject(new Message(null, "Server", message.getSentBy(), "success", MsgType.re_fa_bu_tie_zi_category));
+                            os.flush();
+                        }
+                        break;
+
+                    case hui_fu_tie_zi: //sentBy: username  sendTo:post_id  data: reply_content
+                        if (message.getSendTo() != null && message.getData() != null) {
+                            if (!judge_post_exist(Integer.parseInt(message.getSendTo()))) { // post_id not exist
+                                os.writeObject(new Message(null, "Server", message.getSentBy(), "fail", MsgType.hui_fu_tie_zi));
+                                os.flush();
+                            } else {
+                                do_reply_add(Integer.parseInt(message.getSendTo()), message.getData(), message.getSentBy());
+                                os.writeObject(new Message(null, "Server", message.getSentBy(), "success", MsgType.hui_fu_tie_zi));
+                                os.flush();
+                            }
+                        }
+                        break;
+
                     case hui_fu_hui_fu:
-                        if (!judge_reply_exist(Integer.parseInt(message.getSendTo()))) { //reply not exist
-                            os.writeObject(new Message(null, "Server", message.getSentBy(), "fail", MsgType.hui_fu_hui_fu));
-                            os.flush();
-                        } else {
-                            do_secondary_reply_add(Integer.parseInt(message.getSendTo()), message.getData(), message.getSentBy());
-                            os.writeObject(new Message(null, "Server", message.getSentBy(), "success", MsgType.hui_fu_hui_fu));
-                            os.flush();
+                        if (message.getSendTo() != null && message.getData() != null) {
+                            if (!judge_reply_exist(Integer.parseInt(message.getSendTo()))) { //reply not exist
+                                os.writeObject(new Message(null, "Server", message.getSentBy(), "fail", MsgType.hui_fu_hui_fu));
+                                os.flush();
+                            } else {
+                                do_secondary_reply_add(Integer.parseInt(message.getSendTo()), message.getData(), message.getSentBy());
+                                os.writeObject(new Message(null, "Server", message.getSentBy(), "success", MsgType.hui_fu_hui_fu));
+                                os.flush();
+                            }
                         }
                         break;
 
@@ -449,10 +480,9 @@ class ServerReader implements Runnable {
                         ResultSet rs15 = ps15.executeQuery();
                         StringBuilder sb15 = new StringBuilder("左边为post_id, 右边为title~~");
                         while (rs15.next()) {
-                            if (!rs15.getBoolean(7)||rs15.getString(5).equals(message.getSentBy())) {
+                            if (!rs15.getBoolean(7) || rs15.getString(5).equals(message.getSentBy())) {
                                 sb15.append(rs15.getInt(1)).append(" ").append(rs15.getString(2)).append(" ").append(rs15.getString(5)).append("~~");
-                            }
-                            else {
+                            } else {
                                 sb15.append(rs15.getInt(1)).append(" ").append(rs15.getString(2)).append(" ").append("(匿名)").append("~~");
                             }
                         }
@@ -463,9 +493,9 @@ class ServerReader implements Runnable {
 
                         String sql16 = "select * from author_ignore where author_id = ? and ignored_author_id = ?";
                         PreparedStatement ps16 = con.prepareStatement(sql16);
-                        ps16.setString(1,message.getSentBy());
+                        ps16.setString(1, message.getSentBy());
                         ps16.setString(2, message.getData());
-                        if(ps16.executeQuery().next()){
+                        if (ps16.executeQuery().next()) {
                             sb15 = new StringBuilder();
                         }
 
@@ -530,6 +560,10 @@ class ServerReader implements Runnable {
                         os.flush();
                         break;
 
+                    case lei_xing_sou_suo:
+                        os.writeObject(new Message(null, null, null, do_category_search(message.getData()), MsgType.lei_xing_sou_suo));
+                        os.flush();
+                        break;
 
                     case multi_search:
                         os.writeObject(new Message(null, null, null,
@@ -538,56 +572,128 @@ class ServerReader implements Runnable {
                         break;
 
                     case ping_bi:
-                        //检查是否存在这个用户
-                        if (!judge_author_exist(message.getData())) {
-                            os.writeObject(new Message(null, null, null, "fail", MsgType.ping_bi));
-                            os.flush();
-                        } else {
-                            do_ignore_add(message.getSentBy(), message.getData());
-                            //去掉点赞
-                            remove_like(message.getData(),message.getSentBy());
-                            //取消收藏
-                            remove_favorite(message.getData(),message.getSentBy());
-                            //取消关注
-                            remove_follow(message.getData(),message.getSentBy());
-                            os.writeObject(new Message(null, null, null, "success", MsgType.ping_bi));
-                            os.flush();
+                        if (message.getData() != null) {
+                            //检查是否存在这个用户
+                            if (!judge_author_exist(message.getData())) {
+                                os.writeObject(new Message(null, null, null, "fail", MsgType.ping_bi));
+                                os.flush();
+                            } else {
+                                do_ignore_add(message.getSentBy(), message.getData());
+                                //去掉点赞
+                                remove_like(message.getData(), message.getSentBy());
+                                //取消收藏
+                                remove_favorite(message.getData(), message.getSentBy());
+                                //取消关注
+                                remove_follow(message.getData(), message.getSentBy());
+                                os.writeObject(new Message(null, null, null, "success", MsgType.ping_bi));
+                                os.flush();
+                            }
                         }
+                        break;
+
+
+                    case more_post_information:
+                        os.writeObject(new Message(null, null, null,
+                                do_post_info_req(Integer.parseInt(message.getData())), MsgType.more_post_information));
+                        os.flush();
+                        break;
+
+                    case yin_pin:
+                        //发送回去所有音频文件(以 .wav 结尾的content)
+                        os.writeObject(new Message(null,null,null,sendBackAudioList(),MsgType.yin_pin));
+                        os.flush();
+                        break;
+
+                    case yin_pin_again:
+                        do_play_audio(message.getData());
+                        break;
 
                     default:
                         break;
                 }
             }
         } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
+            System.out.println("null");
         } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } catch (UnsupportedAudioFileException e) {
+            throw new RuntimeException(e);
+        } catch (LineUnavailableException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void remove_follow(String author_id,String follower) throws SQLException {
+    private void do_play_audio(String title) throws SQLException, UnsupportedAudioFileException, LineUnavailableException, IOException {
+        String sql = "select *\n" +
+                "from post where title = ?";
+        PreparedStatement ps  =con.prepareStatement(sql);
+        ps.setString(1,title);
+        ResultSet rs = ps.executeQuery();
+        rs.next();
+        String path = rs.getString(3);
+        MyAudioPlayer.playMusic(path);
+    }
+
+    private String sendBackAudioList() throws SQLException {
+        String sql = "select *\n" +
+                "from post where content like '%.wav'";
+        PreparedStatement ps = con.prepareStatement(sql);
+        ResultSet rs = ps.executeQuery();
+        StringBuilder sb = new StringBuilder();
+        while (rs.next()) {
+            sb.append(rs.getString(2)).append("~");
+        }
+        if(sb.length()>1){
+            sb.deleteCharAt(sb.length()-1);
+        }
+        return sb.toString();
+    }
+
+
+    private String do_post_info_req(int post_id) throws SQLException {
+        String sql = "select * from post where post_id = ?";
+        PreparedStatement ps = con.prepareStatement(sql);
+        ps.setInt(1, post_id);
+        ResultSet rs = ps.executeQuery();
+        con.commit();
+        StringBuilder sb = new StringBuilder();
+        while (rs.next()) {
+            sb.append("post_id  : ").append(rs.getInt(1)).append("\n")
+                    .append("title    : ").append(rs.getString(2)).append("\n")
+                    .append("content  : ").append(rs.getString(3)).append("\n")
+                    .append("post_time: ").append(rs.getTimestamp(4)).append("\n")
+                    .append("author_id: ").append(rs.getString(5)).append("\n")
+                    .append("city_id  : ").append(rs.getInt(6)).append("\n").append("~");
+        }
+        if (sb.length() > 1) {
+            sb.deleteCharAt(sb.length() - 1);
+        }
+        return sb.toString();
+    }
+
+    private void remove_follow(String author_id, String follower) throws SQLException {
         String sql = "delete\n" +
                 "from post_followers\n" +
                 "where author_id = ? and follow_id = ?";
         PreparedStatement ps = con.prepareStatement(sql);
-        ps.setString(1,author_id);
-        ps.setString(2,follower);
+        ps.setString(1, author_id);
+        ps.setString(2, follower);
         ps.executeUpdate();
     }
 
-    private void remove_favorite(String author_id,String liker) throws SQLException {
+    private void remove_favorite(String author_id, String liker) throws SQLException {
         String sql = "delete from post_favorites where post_id = (select post.post_id from post where post.author_id = ?) and author_id = ?";
         PreparedStatement ps = con.prepareStatement(sql);
-        ps.setString(1,author_id);
-        ps.setString(2,liker);
+        ps.setString(1, author_id);
+        ps.setString(2, liker);
         ps.executeUpdate();
     }
 
-    private void remove_like(String author_id,String liker) throws SQLException {
+    private void remove_like(String author_id, String liker) throws SQLException {
         String sql = "delete from post_likes where post_id = (select post.post_id from post where post.author_id = ?) and author_id = ?";
         PreparedStatement ps = con.prepareStatement(sql);
-        ps.setString(1,author_id);
-        ps.setString(2,liker);
+        ps.setString(1, author_id);
+        ps.setString(2, liker);
         ps.executeUpdate();
     }
 
@@ -598,6 +704,54 @@ class ServerReader implements Runnable {
         ps.setString(2, ignored_id);
         ps.executeUpdate();
         con.commit();
+    }
+
+    //类型搜索
+    private String do_category_search(String str) throws SQLException {
+        if (isNumeric(str)) {
+            String sql = "select *\n" +
+                    "from post p join (select * from post_category where category_id = ?) pc on p.post_id = pc.post_id ";
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setInt(1, Integer.parseInt(str));
+            ResultSet rs = ps.executeQuery();
+            StringBuilder sb = new StringBuilder();
+            while (rs.next()) {
+                sb.append(rs.getInt(1)).append(" ").append(rs.getString(2)).append("~");
+            }
+            if (sb.length() > 1) {
+                sb.deleteCharAt(sb.length() - 1);
+            }
+            return sb.toString();
+        } else {
+            if (!checkAlpha(str).equals("wrongSymbol")) {
+                String sql = "with x as(select *\n" +
+                        "from post_category pc join (select *\n" +
+                        "from category where name = ?) c on c.category_id = pc.category_id)\n" +
+                        "select distinct p.post_id,title\n" +
+                        "from post p join x on p.post_id = x.post_id order by post_id";
+                PreparedStatement ps = con.prepareStatement(sql);
+                ps.setString(1, checkAlpha(str));
+                ResultSet rs = ps.executeQuery();
+                StringBuilder sb = new StringBuilder();
+                while (rs.next()) {
+                    sb.append(rs.getInt(1)).append(" ").append(rs.getString(2)).append("~");
+                }
+                if (sb.length() > 1) {
+                    sb.deleteCharAt(sb.length() - 1);
+                }
+                return sb.toString();
+            } else {
+                return "fail";
+            }
+        }
+    }
+
+    public static String checkAlpha(String s) {
+        if (s.matches("[a-zA-Z]+")) {
+            return s.substring(0, 1).toUpperCase() + s.substring(1).toLowerCase();
+        } else {
+            return "wrongSymbol";
+        }
     }
 
     private String do_multi_search(String k, String st, String et) throws SQLException {
@@ -947,8 +1101,7 @@ class ServerReader implements Runnable {
         try {
             con = DriverManager.getConnection(url, prop);
             if (con != null) {
-                System.out.println("Successfully connected to the database "
-                );
+                System.out.println("Successfully connected to the database.");
                 con.setAutoCommit(false);
             }
         } catch (SQLException e) {
@@ -956,6 +1109,21 @@ class ServerReader implements Runnable {
             System.err.println(e.getMessage());
             System.exit(1);
         }
+    }
+
+    private void openDB(DataSource ds) throws SQLException {
+        try {
+            con = ds.getConnection();
+            if (con != null) {
+                System.out.println("Successfully connected to the database.");
+                con.setAutoCommit(false);
+            }
+        } catch (SQLException e) {
+            System.err.println("Database connection failed");
+            System.err.println(e.getMessage());
+            System.exit(1);
+        }
+
     }
 
     private static void clearDataInTable() {

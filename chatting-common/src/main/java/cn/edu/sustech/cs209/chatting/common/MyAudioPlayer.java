@@ -26,8 +26,8 @@ public class MyAudioPlayer {
 //    public void play() {
 //        AudioPlayer.player.start(audioStream);
 //    }
-public static void playMusic() throws UnsupportedAudioFileException, IOException, LineUnavailableException {
-    File wavFile = new File("C:\\Users\\y1211\\Desktop\\java2_assignment\\CS029A_assignment2\\6tn8s-wo9nn.wav");//可以使用文件
+public static void playMusic(String path) throws UnsupportedAudioFileException, IOException, LineUnavailableException {
+    File wavFile = new File(path);//可以使用文件
 //InputStream in = new FileInputStream(wavFile);//也可以使用流
 //URL url = wavFile.toURI().toURL();//还可以使用URL
     AudioInputStream ais = AudioSystem.getAudioInputStream(wavFile);//这里使用上面的三种，那种都可以

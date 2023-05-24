@@ -4,13 +4,17 @@ import cn.edu.sustech.cs209.chatting.common.Message;
 import cn.edu.sustech.cs209.chatting.common.MsgType;
 import cn.edu.sustech.cs209.chatting.common.OOS_OIS;
 import javafx.application.Platform;
+import javafx.event.EventType;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
+import javafx.scene.input.MouseButton;
 
 
 import javax.sql.rowset.serial.SerialStruct;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.net.Socket;
 import java.sql.Timestamp;
@@ -112,6 +116,16 @@ class ClientReader implements Runnable {
                         break;
 
 
+                    case client_visitor:
+                        System.out.println("visitor login");
+                        pop_information("游客模式登录成功");
+                        hotSearch_decode(message.getData());
+                        Platform.runLater(() -> {
+                            controller.idShower.setText("游客");
+                        });
+
+                        break;
+
                     case client_register_reject:
                         System.out.println("register reject, " + controller.username + " has existed");
                         pop_error("register reject, " + controller.username + "has existed", true);
@@ -119,6 +133,9 @@ class ClientReader implements Runnable {
                     case client_register_success:
                         System.out.println("register successfully");
                         hotSearch_decode(message.getData());//热搜榜
+                        Platform.runLater(() -> {
+                            controller.idShower.setText(controller.username);
+                        });
                         break;
                     case client_login_reject:
                         System.out.println("login reject, wrong input");
@@ -127,6 +144,9 @@ class ClientReader implements Runnable {
                     case client_login_success:
                         System.out.println("login successfully");
                         hotSearch_decode(message.getData());
+                        Platform.runLater(() -> {
+                            controller.idShower.setText(controller.username);
+                        });
                         break;
 
                     case dian_zan:
@@ -180,26 +200,26 @@ class ClientReader implements Runnable {
                         }
                         break;
                     case qu_xiao_guan_zhu:
-                        if(message.getData().equals("fail")){
-                            pop_error("取消关注失败，可能是id有误",false);
-                        }else if(message.getData().equals("havent")){
-                            pop_error("你还没有关注该帖子",false);
-                        }else {
+                        if (message.getData().equals("fail")) {
+                            pop_error("取消关注失败，可能是id有误", false);
+                        } else if (message.getData().equals("havent")) {
+                            pop_error("你还没有关注该帖子", false);
+                        } else {
                             pop_information("取消关注成功");
                         }
                         break;
 
                     case cha_kan_guan_zhu:
                         System.out.println("关注已显示");
-                        showTextDialog("查看关注",message.getData().split("~"));
+                        showTextDialog("查看关注", message.getData().split("~"));
                         break;
 
                     case fa_bu_tie_zi:
-                        if(message.getData().equals("repetitive!!!")){
-                            pop_error("你发布的帖子题目重复啦",false);
-                        }else {
+                        if (message.getData().equals("repetitive!!!")) {
+                            pop_error("你发布的帖子题目重复啦", false);
+                        } else {
                             //调用controller中的方法，收集信息传给server,此处传递content
-                            this.controller.getPostContent(message.getData(),message.getSentBy());
+                            this.controller.getPostContent(message.getData(), message.getSentBy());
                         }
                         break;
 
@@ -208,66 +228,87 @@ class ClientReader implements Runnable {
                         String anony = message.getSentBy().split("~~")[1];
                         String content = message.getSendTo();
                         String[] cities = message.getData().split("``");
-                        this.controller.getPostCity(title,content,cities,anony);
+                        this.controller.getPostCity(title, content, cities, anony);
                         break;
                     case re_fa_bu_tie_zi_city:
                         int pid = Integer.parseInt(message.getSendTo());
                         String[] categories = message.getData().split("``");
-                        this.controller.getPostCategories(pid,categories);
+                        this.controller.getPostCategories(pid, categories);
                         break;
                     case re_fa_bu_tie_zi_category:
                         pop_information("发布完成");
                         break;
 
                     case hui_fu_tie_zi:
-                        if(message.getData().equals("success")){
+                        if (message.getData().equals("success")) {
                             pop_information("回复帖子成功");
-                        }else {
-                            pop_error("回复失败（id不正确）",false);
+                        } else {
+                            pop_error("回复失败（id不正确）", false);
                         }
                         break;
 
                     case hui_fu_hui_fu:
-                        if(message.getData().equals("success")){
+                        if (message.getData().equals("success")) {
                             pop_information("回复回复成功");
-                        }else {
-                            pop_error("回复回复失败（id不正确）",false);
+                        } else {
+                            pop_error("回复回复失败（id不正确）", false);
                         }
                         break;
 
 
                     case cha_kan_ta_ren_fa_bu:
-                        System.out.println("已查看他人: "+message.getSentBy()+"的发布");
-                        showTextDialog("查看他人发布",message.getData().split("~~"));
+                        System.out.println("已查看他人: " + message.getSentBy() + "的发布");
+                        showTextDialog("查看他人发布", message.getData().split("~~"));
                         break;
 
                     case cha_kan_fa_bu:
                         System.out.println("该用户发布的帖子已显示");
-                        showTextDialog("查看发布",message.getData().split("~~"));
+                        showTextDialog("查看发布", message.getData().split("~~"));
                         break;
 
                     case cha_kan_hui_fu:
                         System.out.println("该用户发布的回复已显示");
-                        showTextDialog("查看回复",message.getData().split("~~"));
+                        showTextDialog("查看回复", message.getData().split("~~"));
                         break;
 
                     case cha_kan_er_ji_hui_fu:
                         System.out.println("该用户发布的二级回复已显示");
-                        showTextDialog("查看二级回复",message.getData().split("~~"));
+                        showTextDialog("查看二级回复", message.getData().split("~~"));
                         break;
 
+                    case lei_xing_sou_suo:
+                        if (message.getData().equals("fail")) {
+                            pop_error("输入有误", false);
+                        } else {
+                            showTextDialog("类型搜索", message.getData().split("~"));
+                        }
+                        break;
 
                     case multi_search:
-                        showTextDialog("多参数搜索结果",message.getData().split("~~"));
+                        showTextDialog("多参数搜索结果", message.getData().split("~~"));
                         break;
 
                     case ping_bi:
-                        if(message.getData().equals("fail")){
-                            pop_error("输入的author_id有误",false);
-                        }else {
+                        if (message.getData().equals("fail")) {
+                            pop_error("输入的author_id有误", false);
+                        } else {
                             pop_information("屏蔽成功");
                         }
                         break;
+
+                    case more_post_information:
+                        System.out.println("详细信息已显示");
+                        showTextDialog("详细信息：", message.getData().split("~"));
+                        break;
+
+                    case yin_pin:
+                        if (message.getData().length() <= 2) {
+                            pop_error("没有可播放的音频", false);
+                        } else {
+                            controller.chooseAudio(message.getData().split("~"));
+                        }
+                        break;
+
                     default:
                         break;
                 }
@@ -280,9 +321,30 @@ class ClientReader implements Runnable {
 
     private void hotSearch_decode(String str) {
         StringBuilder sb = new StringBuilder("热搜榜:\n");
-        for(String s : str.split("~~")){
+        for (String s : str.split("~~")) {
             sb.append(s).append("\n");
         }
+        controller.hotSearchArea.setStyle("-fx-font-size: 26px;");
+        controller.hotSearchArea.setEditable(false);
+        controller.hotSearchArea.setOnMouseClicked(event -> {
+            if (event.getButton().equals(MouseButton.PRIMARY) && event.getClickCount() == 2) {
+                int index = controller.hotSearchArea.getCaretPosition();
+                int start = index;
+                int end = index;
+                while (start >= 0 && controller.hotSearchArea.getText().charAt(start) != '\n') {
+                    start--;
+                }
+                while (end < controller.hotSearchArea.getLength() && controller.hotSearchArea.getText().charAt(end) != '\n') {
+                    end++;
+                }
+                try {
+                    String clickedRowContent = controller.hotSearchArea.getText().substring(start + 1, end);
+                    controller.morePostInfo(clickedRowContent.split(" ")[0]);
+                } catch (IOException e) {
+                    System.out.println("无效位置");
+                }
+            }
+        });
         controller.hotSearchArea.setText(sb.toString());
     }
 
@@ -333,11 +395,39 @@ class ClientReader implements Runnable {
         JScrollPane scrollPane = new JScrollPane(
                 textArea,
                 ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,
-                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS
         );
         helper.setContentPane(scrollPane);
         helper.setVisible(true);
+
+        // 添加鼠标监听器
+        textArea.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2) {
+                    int row = textArea.viewToModel(e.getPoint());
+                    int start = row;
+                    int end = row;
+                    while (start >= 0 && helpText.charAt(start) != '\n') {
+                        start--;
+                    }
+                    while (end < helpText.length() && helpText.charAt(end) != '\n') {
+                        end++;
+                    }
+                    try {
+                        String clickedRowContent = helpText.substring(start + 1, end);
+
+//                        System.out.println(clickedRowContent);
+
+                        controller.morePostInfo(clickedRowContent.split(" ")[0]);
+                    } catch (Exception ex) {
+                        System.out.println("无效位置");
+                    }
+                }
+            }
+        });
     }
+
 }
 
 class ClientWriter implements Runnable {
@@ -384,6 +474,12 @@ class ClientWriter implements Runnable {
                 } else if (type.equals("register")) {
                     Message message = new Message(System.currentTimeMillis(),
                             username, "Server", loginSent(), MsgType.client_register);
+                    os.writeObject(message);
+                    socket.getOutputStream().flush();
+                    controlNum++;
+                } else if (type.equals("visitor")) {
+                    Message message = new Message(System.currentTimeMillis(),
+                            username, "Server", loginSent(), MsgType.client_visitor);
                     os.writeObject(message);
                     socket.getOutputStream().flush();
                     controlNum++;

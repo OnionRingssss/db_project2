@@ -4,7 +4,7 @@ public enum MsgType {
     COMMAND,TALK,REQ,TALKINGTO,GROUP_CREATE,G_TALK,G_COMMAND,G_REQ,G_CREATEGCONTROLLER,
     EXIT,EXIT_NO_KEEP,SERVER_EXIT,NOT_ALLOW_LOGIN,R_FIAL,EXIT_FROM_GROUP,FILE,
 
-    client_login,client_register,client_register_success,client_register_reject,client_login_reject,client_login_success,
+    client_login,client_register,client_register_success,client_register_reject,client_login_reject,client_login_success,client_visitor,
     dian_zan,shou_cang,zhuan_fa,guan_zhu,qu_xiao_guan_zhu,
     cha_kan_dian_zan, cha_kan_shou_cang, cha_kan_zhuan_fa, cha_kan_guan_zhu,
     fa_bu_tie_zi,re_fa_bu_tie_zi_content,re_fa_bu_tie_zi_city,re_fa_bu_tie_zi_category,
@@ -14,6 +14,9 @@ public enum MsgType {
     cha_kan_fa_bu,
     cha_kan_hui_fu,
     cha_kan_er_ji_hui_fu,
+    lei_xing_sou_suo,//类型搜索
     multi_search, // 多参数搜索
-    ping_bi;
+    ping_bi,
+    more_post_information,
+    yin_pin,yin_pin_again;
 }

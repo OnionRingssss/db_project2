@@ -12,7 +12,7 @@
          <children>
             <VBox prefHeight="621.0" prefWidth="144.0">
                <children>
-                  <Label prefHeight="51.0" prefWidth="134.0" text="控制台" />
+                  <Label fx:id="idShower" prefHeight="51.0" prefWidth="134.0" text="控制台" />
                   <Button fx:id="dianZan" mnemonicParsing="false" onAction="#click_dianZan" prefHeight="24.0" prefWidth="60.0" text="点赞" />
                   <Button mnemonicParsing="false" onAction="#click_shouCang" prefHeight="23.0" prefWidth="62.0" text="收藏" />
                   <Button mnemonicParsing="false" onAction="#click_zhuanFa" prefHeight="23.0" prefWidth="63.0" text="转发" />
@@ -29,8 +29,10 @@
                   <Button mnemonicParsing="false" onAction="#click_chaKanFaBu" text="查看自己帖子" />
                   <Button mnemonicParsing="false" onAction="#click_chaKanHuiFu" text="查看回复" />
                   <Button mnemonicParsing="false" onAction="#click_chaKanErJiHuiFu" text="查看二级回复" />
+                  <Button mnemonicParsing="false" onAction="#click_cateSearch" text="类型搜索" />
                   <Button mnemonicParsing="false" onAction="#click_multiSearch" text="多参数搜索" />
                   <Button mnemonicParsing="false" onAction="#click_pingBi" text="屏蔽" />
+                  <Button mnemonicParsing="false" onAction="#click_yinPin" text="收听音频" />
                </children>
             </VBox>
             <VBox prefHeight="621.0" prefWidth="756.0">

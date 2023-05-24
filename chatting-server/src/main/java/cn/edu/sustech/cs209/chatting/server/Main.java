@@ -48,7 +48,6 @@ public class Main {
             //2.创建线程池,从而可以处理多个客户端
             ExecutorService executorService = Executors.newFixedThreadPool(100);
             for (int i = 1; i < 100; i++) {
-                System.out.println("欢迎来到我的聊天室......");
                 //3.侦听客户端
                 Socket socket = serverSocket.accept();
                 System.out.println("有新的朋友加入.....");
